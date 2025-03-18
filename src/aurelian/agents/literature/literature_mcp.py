@@ -44,8 +44,7 @@ async def lookup_pmid(pmid: str) -> str:
     Returns:
         Full text if available, otherwise abstract
     """
-    return await lt.lookup_pmid(pmid)
-
+    return await lt.lookup_pmid(ctx(), pmid)
 
 @mcp.tool()
 async def lookup_doi(doi: str) -> str:
