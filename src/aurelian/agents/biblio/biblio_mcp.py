@@ -72,7 +72,7 @@ async def lookup_pmid(pmid: str) -> str:
     A PMID should be of the form "PMID:nnnnnnn" (no underscores).
 
     NOTE: Phenopacket IDs are typically of the form PMID_nnn_PatientNumber,
-    but this should be be assumed. To reliably get PMIDs for a phenopacket,
+    but this should be assumed. To reliably get PMIDs for a phenopacket,
     use `lookup_phenopacket` to retrieve examine the `externalReferences`
     field.
     """
