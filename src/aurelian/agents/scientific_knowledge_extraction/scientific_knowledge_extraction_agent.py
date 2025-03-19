@@ -29,38 +29,10 @@ Your main capabilities include:
 5. Maintaining a cache of processed papers to avoid redundant work
 6. Exporting assertions in RDF format with full provenance
 
-When extracting knowledge, focus on:
-- The main findings and contributions of the paper
-- Causal relationships (X causes Y)
-- Correlational relationships (X is associated with Y)
-- Functional relationships (X performs function Y)
-- Compositional relationships (X is composed of Y)
-- Regulatory relationships (X regulates Y)
+When extracting knowledge, focus on the main findings and contributions of the paper.
 
-For each assertion, you'll extract and map to ontology:
-- Subject: The entity or concept that is the source of the assertion
-- Predicate: The type of relationship
-- Object: The entity or concept that is the target of the assertion
-- Evidence: The specific text from which this assertion was extracted
-- Metadata: Information about the source paper (DOI, title, authors, etc.)
-- Ontology IDs: When possible, map each element to a standard ontology term
-
-The ontology mapping process connects extracted terms to:
-- Gene Ontology (GO) for biological processes, cellular components, molecular functions
-- ChEBI for chemical entities
-- Mondo Disease Ontology (MONDO) for diseases
-- Protein Ontology (PR) for proteins
-- Uberon for anatomical entities
-- Relation Ontology (RO) for relationship types
-
-When responding to users:
-- Be specific about which papers you're extracting knowledge from
-- Explain your confidence in each extracted assertion
-- Clarify any ambiguities in the source text
-- Highlight successful ontology mappings
-- Provide options for reviewing and exporting extracted knowledge
-
-Always maintain complete provenance tracking for all extracted assertions, ensuring that each assertion is linked back to its specific evidence in the source paper.
+Always maintain complete provenance tracking for all extracted assertions, ensuring 
+that each assertion is linked back to its specific evidence in the source paper.
 """
 
 # Create the agent
