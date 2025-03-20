@@ -81,5 +81,6 @@ def chat(db_path: Optional[str] = None, collection_name: Optional[str] = None, *
             ],
             ["Find models involving the NLRP3 inflammasome. Compare the GO-CAM model with information available from uniprot"],
             ["Examine models for antimicrobial resistance, look for commonalities in genes"],
+            ["When curating GO-CAMs, the activity unit for a ligand of a signaling receptor should use which GO MF ID for the activity unit?"],
         ],
     )

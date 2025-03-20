@@ -1,14 +1,23 @@
 """
 Tools for the GOCAM agent.
 """
-from typing import List, Dict, Optional
+import os
+import json
+import yaml
+from pathlib import Path
+from typing import List, Dict, Optional, Union, Any
 
+from linkml_store.utils.format_utils import load_objects
 from pydantic_ai import RunContext, ModelRetry
+from pydantic import ValidationError
+
+from gocam.datamodel.gocam import Model as GocamModel
 
 from aurelian.agents.gocam.gocam_config import GOCAMDependencies
 from aurelian.agents.uniprot.uniprot_tools import normalize_uniprot_id
 from aurelian.utils.data_utils import flatten
 from aurelian.agents.literature.literature_tools import search_literature_web, retrieve_literature_page
+from . import DOCUMENTS_DIR
 
 
 async def search_gocams(ctx: RunContext[GOCAMDependencies], query: str) -> List[Dict]:
@@ -51,6 +60,34 @@ async def search_gocams(ctx: RunContext[GOCAMDependencies], query: str) -> List[
             raise e
         raise ModelRetry(f"Error searching GOCAM models: {str(e)}")
 
+
+async def lookup_gocam_local(ctx: RunContext[GOCAMDependencies], path: str) -> Dict:
+    """
+    Performs a lookup of a GO-CAM model by its local file path.
+
+    Args:
+        ctx: The run context
+        path: The local file path of the GO-CAM model
+    """
+    print(f"LOOKUP GOCAM LOCAL: {path}")
+    try:
+        path = Path(path)
+        if not path.exists():
+            raise ModelRetry(f"File not found: {path}")
+        objects = load_objects(path)
+        if not objects:
+            raise ModelRetry(f"No objects found in file: {path}")
+        if not isinstance(objects, list):
+            objects = [objects]
+        if len(objects) > 1:
+            raise ModelRetry(f"Multiple objects found in file: {path}")
+        if not isinstance(objects[0], dict):
+            raise ModelRetry(f"Object is not a dictionary: {path}")
+        return objects[0]
+    except Exception as e:
+        if "ModelRetry" in str(type(e)):
+            raise e
+        raise ModelRetry(f"Error looking up GO-CAM model: {str(e)}")
 
 async def lookup_gocam(ctx: RunContext[GOCAMDependencies], model_id: str) -> Dict:
     """
@@ -116,3 +153,142 @@ async def lookup_uniprot_entry(ctx: RunContext[GOCAMDependencies], uniprot_acc: 
 # These functions have been removed and replaced with direct use of
 # literature_lookup_pmid, search_literature_web, and retrieve_literature_page
 # from aurelian.agents.literature.literature_tools
+
+
+def all_documents() -> Dict:
+    """
+    Get all available GO-CAM documentation.
+    
+    Returns:
+        Dictionary of all available GO-CAM documents
+    """
+    if not DOCUMENTS_DIR.exists():
+        return {"documents": []}
+    
+    documents = []
+    for file_path in DOCUMENTS_DIR.glob("*.md"):
+        doc_id = file_path.stem
+        title = doc_id.replace("_", " ")
+        documents.append({
+            "id": doc_id,
+            "title": title,
+            "path": str(file_path)
+        })
+    
+    return {"documents": documents}
+
+
+async def fetch_document(
+    ctx: RunContext[GOCAMDependencies], 
+    name: str,
+    format: str = "md"
+) -> str:
+    """
+    Lookup the GO-CAM document by name.
+
+    Args:
+        ctx: The run context
+        name: The document name (e.g. "How_to_annotate_complexes_in_GO-CAM")
+        format: The format of the document (defaults to "md")
+    
+    Returns:
+        The content of the document
+    """
+    print(f"FETCH DOCUMENT: {name}")
+    try:
+        # Get all available documents
+        all_docs = all_documents()
+        
+        # Normalize document name and find it
+        selected_document = None
+        name_normalized = name.replace(" ", "_").lower()
+        
+        for document in all_docs["documents"]:
+            if document["id"].lower() == name_normalized:
+                selected_document = document
+                break
+            if document["title"].lower() == name.lower():
+                selected_document = document
+                break
+                
+        if not selected_document:
+            available_docs = ", ".join([d["title"] for d in all_docs["documents"]])
+            raise ModelRetry(
+                f"Could not find document with name '{name}'. "
+                f"Available documents: {available_docs}"
+            )
+            
+        # Get the document file
+        path = Path(selected_document["path"])
+        
+        if not path.exists():
+            raise ModelRetry(f"Document file not found: {path}")
+            
+        # Read the document file
+        with open(path) as f:
+            content = f.read()
+            
+        if not content or content.strip() == "":
+            raise ModelRetry(f"Document file is empty: {path}")
+            
+        return content
+    except Exception as e:
+        if "ModelRetry" in str(type(e)):
+            raise e
+        raise ModelRetry(f"Error fetching document: {str(e)}")
+
+
+async def validate_gocam_model(
+    ctx: RunContext[GOCAMDependencies],
+    model_data: Union[str, Dict[str, Any]],
+    format: str = "json"
+) -> Dict[str, Any]:
+    """
+    Validate a GO-CAM model against the pydantic schema.
+    
+    Args:
+        ctx: The run context
+        model_data: The model data as a JSON/YAML string or dict
+        format: The format of the input data (json or yaml)
+    
+    Returns:
+        Dict with validation results, including success status and errors if any
+    """
+    try:
+        # Parse the input data if it's a string
+        if isinstance(model_data, str):
+            if format.lower() == "json":
+                parsed_data = json.loads(model_data)
+            elif format.lower() == "yaml":
+                parsed_data = yaml.safe_load(model_data)
+            else:
+                raise ModelRetry(f"Unsupported format: {format}. Must be 'json' or 'yaml'")
+        else:
+            parsed_data = model_data
+        
+        # Validate the model
+        try:
+            gocam_model = GocamModel(**parsed_data)
+            return {
+                "valid": True,
+                "message": "Model is valid according to GO-CAM schema",
+                "model": gocam_model.model_dump(exclude_none=True)
+            }
+        except ValidationError as e:
+            errors = []
+            for error in e.errors():
+                errors.append({
+                    "loc": " -> ".join([str(loc) for loc in error["loc"]]),
+                    "msg": error["msg"],
+                    "type": error["type"]
+                })
+            
+            return {
+                "valid": False,
+                "message": "Model validation failed",
+                "errors": errors
+            }
+    except Exception as e:
+        if "ModelRetry" in str(type(e)):
+            raise e
+        raise ModelRetry(f"Error validating GO-CAM model: {str(e)}")

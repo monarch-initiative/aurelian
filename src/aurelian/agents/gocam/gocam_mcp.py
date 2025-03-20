@@ -189,6 +189,36 @@ async def write_to_file(file_name: str, data: str) -> str:
     return await fst.write_to_file(ctx(), file_name, data)
 
 
+@mcp.tool()
+async def fetch_document(name: str, format: str = "md") -> str:
+    """
+    Lookup the GO-CAM document by name.
+
+    Args:
+        name: The document name (e.g. "How_to_annotate_complexes_in_GO-CAM")
+        format: The format of the document (defaults to "md")
+    
+    Returns:
+        The content of the document
+    """
+    return await gt.fetch_document(ctx(), name, format)
+
+
+@mcp.tool()
+async def validate_gocam_model(model_data: str, format: str = "json") -> Dict:
+    """
+    Validate a GO-CAM model against the pydantic schema.
+    
+    Args:
+        model_data: The model data as a JSON/YAML string
+        format: The format of the input data (json or yaml)
+    
+    Returns:
+        Dict with validation results, including success status and errors if any
+    """
+    return await gt.validate_gocam_model(ctx(), model_data, format)
+
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
