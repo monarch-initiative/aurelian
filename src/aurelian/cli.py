@@ -27,6 +27,11 @@ model_option = click.option(
     "-m",
     help="The model to use for the agent.",
 )
+agent_option = click.option(
+    "--agent",
+    "-a",
+    help="The agent to use (if non-default).",
+)
 workdir_option = click.option(
     "--workdir",
     "-w",
@@ -117,7 +122,8 @@ def run_agent(
     agent_name: str, 
     agent_module: str, 
     query: Optional[tuple] = None, 
-    ui: bool = False, 
+    ui: bool = False,
+    specialist_agent_name: Optional[str] = None,
     agent_func_name: str = "run_sync",
     join_char: str = " ",
     **kwargs
@@ -129,18 +135,23 @@ def run_agent(
         agent_module: Fully qualified module path to the agent
         query: Text query for direct mode
         ui: Whether to force UI mode
+        specialist_agent_name: Name of the agent class to run
         agent_func_name: Name of the function to run the agent
         join_char: Character to join multi-part queries with
         kwargs: Additional arguments for the agent
     """
     # Import required modules
     # These are imported dynamically to avoid loading all agents on startup
-    gradio_module = __import__(f"aurelian.agents.{agent_name}.{agent_name}_gradio", fromlist=["chat"])
-    agent_class = __import__(f"aurelian.agents.{agent_name}.{agent_name}_agent", fromlist=[f"{agent_name}_agent"])
-    config_module = __import__(f"aurelian.agents.{agent_name}.{agent_name}_config", fromlist=["get_config"])
+    if not agent_module:
+        agent_module = f"aurelian.agents.{agent_name}"
+    if not specialist_agent_name:
+        specialist_agent_name = agent_name
+    gradio_module = __import__(f"{agent_module}.{agent_name}_gradio", fromlist=["chat"])
+    agent_class = __import__(f"{agent_module}.{agent_name}_agent", fromlist=[f"{specialist_agent_name}_agent"])
+    config_module = __import__(f"{agent_module}.{agent_name}_config", fromlist=["get_config"])
     
     chat_func = gradio_module.chat
-    agent = getattr(agent_class, f"{agent_name}_agent")
+    agent = getattr(agent_class, f"{specialist_agent_name}_agent")
     get_config = config_module.get_config
     
     # Process agent and UI options
@@ -169,14 +180,6 @@ def run_agent(
         gradio_ui.launch(**launch_options)
 
 
-@main.command()
-def gocam_ui():
-    """Start the GO-CAM UI (non-chat interface)."""
-    from aurelian.agents.gocam.gocam_gradio import ui
-    
-    gocam_ui = ui()
-    gocam_ui.launch()
-
 
 @main.command()
 @click.option("--limit", "-l", default=10, show_default=True, help="Number of results to return.")
@@ -199,13 +202,13 @@ def search_ontology(ontology: str, term: str, **kwargs):
 
 
 @main.command()
+@agent_option
 @model_option
-@workdir_option
 @share_option
 @server_port_option
 @ui_option
 @click.argument("query", nargs=-1, required=False)
-def gocam(ui, query, **kwargs):
+def gocam(ui, query, agent, **kwargs):
     """Start the GO-CAM Agent for gene ontology causal activity models.
     
     The GO-CAM Agent helps create and analyze Gene Ontology Causal Activity Models,
@@ -214,7 +217,7 @@ def gocam(ui, query, **kwargs):
     
     Run with a query for direct mode or with --ui for interactive chat mode.
     """
-    run_agent("gocam", "aurelian.agents.gocam", query=query, ui=ui, **kwargs)
+    run_agent("gocam", "aurelian.agents.gocam", query=query, ui=ui, specialist_agent_name=agent, **kwargs)
 
 
 @main.command()

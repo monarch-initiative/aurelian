@@ -95,6 +95,28 @@ async def test_gocam_mcp():
             print(f"search_gocams result: {tool_result[:200]}...")  # Just show first 200 chars
         except Exception as e:
             print(f"search_gocams failed (expected in test): {e}")
+    
+    # Test fetch_document
+    fetch_doc_tool = next((t for t in tool_choices if t["id"] == "fetch_document"), None)
+    if fetch_doc_tool:
+        print(f"Testing fetch_document tool...")
+        tool_input = '{"name": "Signaling receptor activity annotation guidelines"}'
+        try:
+            tool_result = await client.execute_tool(tool_id=fetch_doc_tool["id"], tool_input=tool_input)
+            print(f"fetch_document result: {tool_result[:200]}...")  # Just show first 200 chars
+        except Exception as e:
+            print(f"fetch_document failed (expected in test without available docs): {e}")
+    
+    # Test validate_gocam_model
+    validate_tool = next((t for t in tool_choices if t["id"] == "validate_gocam_model"), None)
+    if validate_tool:
+        print(f"Testing validate_gocam_model tool...")
+        valid_model = '{"model_data": "{\\"id\\": \\"gomodel:test123\\", \\"title\\": \\"Test Model\\"}", "format": "json"}'
+        try:
+            tool_result = await client.execute_tool(tool_id=validate_tool["id"], tool_input=valid_model)
+            print(f"validate_gocam_model result: {tool_result[:200]}...")
+        except Exception as e:
+            print(f"validate_gocam_model failed: {e}")
 
     await client.close()
 

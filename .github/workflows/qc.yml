@@ -40,7 +40,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          poetry install --no-interaction --extras gradio
+          poetry install --no-interaction --extras gradio --extras gocam --extras rdkit --extras linkml --extras pdfminer
           poetry run pip uninstall -y numpy pandas
           poetry run pip install --no-cache-dir numpy pandas
           poetry run pip uninstall bioservices -y || true
