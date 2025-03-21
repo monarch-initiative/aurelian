@@ -1,11 +1,13 @@
 import pytest
 import os
 
+from tests import INPUT_DIR
+
 if os.getenv("GITHUB_ACTIONS") == "true":
     pytest.skip("Skipping in GitHub Actions", allow_module_level=True)
 
 from aurelian.agents.gocam.gocam_config import GOCAMDependencies
-from aurelian.agents.gocam.gocam_agent import gocam_agent
+from aurelian.agents.gocam.gocam_agent import gocam_agent, gocam_review_summarizer_agent, GOCamReviewSummary
 
 
 @pytest.fixture
@@ -79,3 +81,22 @@ def test_gocam_model_validation(deps):
     data = r.data
     assert data is not None
     assert "invalid" in data.lower() or "error" in data.lower()
+
+
+def test_gocam_review_summarizer_agent():
+    """Test the GO-CAM review summarizer agent."""
+    review_name= "66e382fb00002105-BMP8A_role_in_spermatogenesis_via_SMAD1__SMAD5_and_SMAD9__Human_"
+    review_path = INPUT_DIR / f"{review_name}.md"
+    with open(review_path, "r") as f:
+        review_data = f.read()
+
+    # Test summarization
+    query = f"Please summarize this review: {review_data}"
+    r = gocam_review_summarizer_agent.run_sync(query)
+    data = r.data
+    assert data is not None
+    print(data)
+    assert isinstance(data, GOCamReviewSummary)
+    assert data.model_id == "66e382fb00002105"
+    assert "BMP8A" in data.model_title
+    assert data.completeness_score < 5
