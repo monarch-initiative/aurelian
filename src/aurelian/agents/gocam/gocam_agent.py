@@ -81,6 +81,8 @@ The following predicates are used for causal associations:
 - RO:0002630 *directly negatively regulates*
 - RO:0002304 *causally upstream of, positive effect*
 - RO:0002305 *causally upstream of, negative effect*
+- RO:0002307 *indirectly positively regulates*
+- RO:0002308 *indirectly negatively regulates*
 
 """
 

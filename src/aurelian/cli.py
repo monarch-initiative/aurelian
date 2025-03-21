@@ -157,26 +157,29 @@ def run_agent(
     # Process agent and UI options
     agent_keys = ["model", "workdir", "ontologies", "db_path", "collection_name"]
     agent_options, launch_options = split_options(kwargs, agent_keys=agent_keys)
-    
+
+    deps = get_config()
+
+    # Set workdir if provided
+    if 'workdir' in agent_options and agent_options['workdir']:
+        if hasattr(deps, 'workdir'):
+            deps.workdir.location = agent_options['workdir']
+
+    # Remove workdir from agent options to avoid duplicates
+    agent_run_options = {k: v for k, v in agent_options.items() if k != 'workdir'}
+
     # Run in appropriate mode
     if not ui and query:
         # Direct query mode
-        deps = get_config()
-        
-        # Set workdir if provided
-        if 'workdir' in agent_options and agent_options['workdir']:
-            if hasattr(deps, 'workdir'):
-                deps.workdir.location = agent_options['workdir']
-        
-        # Remove workdir from agent options to avoid duplicates
-        agent_run_options = {k: v for k, v in agent_options.items() if k != 'workdir'}
+
         
         # Run the agent and print results
         r = getattr(agent, agent_func_name)(join_char.join(query), deps=deps, **agent_run_options)
         print(r.data)
     else:
+        print(f"Running {agent_name} in UI mode, agent options: {agent_options}")
         # UI mode
-        gradio_ui = chat_func(**agent_options)
+        gradio_ui = chat_func(deps, **agent_run_options)
         gradio_ui.launch(**launch_options)
 
 
