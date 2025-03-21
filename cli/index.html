@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.8">
     
     
       
@@ -1264,9 +1264,8 @@ relationships. </p>
 <div class="highlight"><pre><span></span><code>main gocam [OPTIONS] [QUERY]...
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code>  -m, --model TEXT           The model to use for the agent.
-  -w, --workdir TEXT         The working directory for the agent.  [default:
-                             workdir]
+<div class="highlight"><pre><span></span><code>  -a, --agent TEXT           The agent to use (if non-default).
+  -m, --model TEXT           The model to use for the agent.
   --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
                              share]
   -p, --server-port INTEGER  The port to run the UI server on.  [default:
@@ -1274,14 +1273,6 @@ relationships. </p>
   --ui / --no-ui             Start the agent in UI mode instead of direct
                              query mode.  [default: no-ui]
   --help                     Show this message and exit.
-</code></pre></div>
-<h2 id="gocam-ui">gocam-ui</h2>
-<p>Start the GO-CAM UI (non-chat interface).</p>
-<p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code>main gocam-ui [OPTIONS]
-</code></pre></div>
-<p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code>  --help  Show this message and exit.
 </code></pre></div>
 <h2 id="linkml">linkml</h2>
 <p>Start the LinkML Agent for data modeling and schema validation.</p>
