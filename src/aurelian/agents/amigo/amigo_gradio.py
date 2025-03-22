@@ -10,18 +10,21 @@ from aurelian.agents.amigo.amigo_config import AmiGODependencies
 from aurelian.utils.async_utils import run_sync
 
 
-def chat(taxon: Optional[str] = None, **kwargs):
+def chat(deps: Optional[AmiGODependencies] = None, taxon: Optional[str] = None, **kwargs):
     """
     Initialize a chat interface for the AmiGO agent.
     
     Args:
+        deps: Optional dependencies configuration
         taxon: Optional NCBI Taxonomy ID, defaults to human (9606)
         **kwargs: Additional arguments to pass to the agent
         
     Returns:
         A Gradio chat interface
     """
-    deps = AmiGODependencies()
+    if deps is None:
+        deps = AmiGODependencies()
+        
     if taxon:
         deps.taxon = taxon
 

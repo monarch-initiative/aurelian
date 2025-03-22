@@ -1,7 +1,7 @@
 """
 Gradio interface for the D4D (Datasheets for Datasets) agent.
 """
-from typing import List
+from typing import List, Optional
 
 import gradio as gr
 
@@ -26,23 +26,25 @@ async def process_url(url: str, history: List[str], config: D4DConfig) -> str:
     return result.data
 
 
-def chat(**kwargs):
+def chat(deps: Optional[D4DConfig] = None, **kwargs):
     """
     Create a Gradio chat interface for the D4D agent.
     
     Args:
+        deps: Optional dependencies configuration
         kwargs: Additional keyword arguments for configuration
         
     Returns:
         A Gradio ChatInterface
     """
-    # Initialize configuration
-    config = get_config(**kwargs)
+    # Initialize dependencies if needed
+    if deps is None:
+        deps = get_config(**kwargs)
     
     def get_info(url: str, history: List[str]) -> str:
         """Wrapper for the async process_url function."""
         import asyncio
-        return asyncio.run(process_url(url, history, config))
+        return asyncio.run(process_url(url, history, deps))
     
     return gr.ChatInterface(
         fn=get_info,
