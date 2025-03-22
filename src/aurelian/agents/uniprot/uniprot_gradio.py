@@ -10,17 +10,19 @@ from aurelian.agents.uniprot.uniprot_config import UniprotConfig
 from aurelian.utils.async_utils import run_sync
 
 
-def chat(**kwargs):
+def chat(deps: Optional[UniprotConfig] = None, **kwargs):
     """
     Initialize a chat interface for the UniProt agent.
     
     Args:
+        deps: Optional dependencies configuration
         **kwargs: Additional arguments to pass to the agent
         
     Returns:
         A Gradio chat interface
     """
-    deps = UniprotConfig()
+    if deps is None:
+        deps = UniprotConfig()
 
     def get_info(query: str, history: List[str]) -> str:
         print(f"QUERY: {query}")

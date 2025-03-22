@@ -171,7 +171,6 @@ def run_agent(
     # Run in appropriate mode
     if not ui and query:
         # Direct query mode
-
         
         # Run the agent and print results
         r = getattr(agent, agent_func_name)(join_char.join(query), deps=deps, **agent_run_options)
@@ -179,7 +178,7 @@ def run_agent(
     else:
         print(f"Running {agent_name} in UI mode, agent options: {agent_options}")
         # UI mode
-        gradio_ui = chat_func(deps, **agent_run_options)
+        gradio_ui = chat_func(deps=deps, **agent_run_options)
         gradio_ui.launch(**launch_options)
 
 
