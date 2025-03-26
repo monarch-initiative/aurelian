@@ -541,6 +541,25 @@ def ubergraph(ui, query, **kwargs):
     run_agent("ubergraph", "aurelian.agents.ubergraph", query=query, ui=ui, **kwargs)
 
 
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def gene(ui, query, **kwargs):
+    """Start the Gene Agent for retrieving gene descriptions.
+    
+    The Gene Agent retrieves descriptions for gene identifiers using the UniProt API.
+    It can process a single gene or a list of genes and returns detailed information
+    about gene function, products, and associations.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("gene", "aurelian.agents.gene", query=query, ui=ui, **kwargs)
+
+
 # DO NOT REMOVE THIS LINE
 # added this for mkdocstrings to work
 # see https://github.com/bruce-szalwinski/mkdocs-typer/issues/18
