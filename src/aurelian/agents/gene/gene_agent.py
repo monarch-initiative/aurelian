@@ -21,6 +21,10 @@ Gene identifiers can be:
 - Gene names
 - Ensembl IDs (e.g., ENSG00000139618)
 
+IMPORTANT: When a gene symbol is provided, the system will automatically look up the corresponding 
+UniProt protein accession first, before retrieving detailed information. This ensures more accurate 
+and comprehensive results.
+
 When returning gene information, present it in a clear, organized manner with:
 - Gene name and symbol
 - Description of gene function

@@ -22,6 +22,42 @@ def normalize_gene_id(gene_id: str) -> str:
     return gene_id
 
 
+def lookup_uniprot_accession(ctx: RunContext[GeneConfig], gene_symbol: str) -> str:
+    """Look up UniProt accession for a gene symbol.
+
+    Args:
+        ctx: The run context with access to the config
+        gene_symbol: The gene symbol to look up
+
+    Returns:
+        UniProt accession if found, or the original symbol if not found
+    """
+    config = ctx.deps or get_config()
+    u = config.get_uniprot_client()
+    
+    try:
+        gene_symbol = normalize_gene_id(gene_symbol)
+        
+        # Skip lookup if it already looks like a UniProt ID
+        if gene_symbol.startswith(("P", "Q", "O")) and any(c.isdigit() for c in gene_symbol):
+            return gene_symbol
+        
+        # Search for the gene symbol specifically
+        search_query = f'gene:{gene_symbol} AND reviewed:yes'
+        results = u.search(search_query, frmt="tsv", columns="accession,gene_names")
+        
+        if results and results.strip() != "":
+            # Get the first line after the header and extract the accession
+            lines = results.strip().split('\n')
+            if len(lines) > 1:
+                return lines[1].split('\t')[0]
+        
+        return gene_symbol
+    except Exception:
+        # Return original gene symbol if lookup fails
+        return gene_symbol
+
+
 def get_gene_description(ctx: RunContext[GeneConfig], gene_id: str) -> str:
     """Get description for a single gene ID.
 
@@ -39,7 +75,14 @@ def get_gene_description(ctx: RunContext[GeneConfig], gene_id: str) -> str:
         # Normalize the gene ID
         gene_id = normalize_gene_id(gene_id)
         
-        # First try a direct lookup if it looks like a UniProt ID
+        # First try to look up UniProt accession if it looks like a gene symbol
+        if not (gene_id.startswith(("P", "Q", "O")) and any(c.isdigit() for c in gene_id)):
+            uniprot_id = lookup_uniprot_accession(ctx, gene_id)
+            # If lookup succeeded (returned a different ID), use that for retrieval
+            if uniprot_id != gene_id:
+                gene_id = uniprot_id
+        
+        # Direct lookup for UniProt IDs
         if gene_id.startswith(("P", "Q", "O")) and any(c.isdigit() for c in gene_id):
             try:
                 result = u.retrieve(gene_id, frmt="txt")
@@ -51,7 +94,7 @@ def get_gene_description(ctx: RunContext[GeneConfig], gene_id: str) -> str:
         # Search for the gene
         search_query = f'gene:{gene_id} OR accession:{gene_id} OR id:{gene_id}'
         results = u.search(search_query, frmt="tsv", 
-                           columns="accession,id,gene_names,organism,protein_name,function,cc_disease")
+                         columns="accession,id,gene_names,organism,protein_name,function,cc_disease")
         
         if not results or results.strip() == "":
             # Try a broader search if the specific one failed
