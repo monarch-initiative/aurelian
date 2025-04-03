@@ -113,7 +113,7 @@ def get_ncbi_gene_info(ctx: RunContext[GeneConfig], gene_id: str) -> Optional[st
                     protein_data = protein_data.decode('utf-8')
                 elif isinstance(protein_data, str) and protein_data.startswith('b\''):
                     protein_data = protein_data[2:-1].replace('\\n', '\n')
-            except:
+            except UnicodeDecodeError:
                 pass
                 
             # Get additional details with esummary
