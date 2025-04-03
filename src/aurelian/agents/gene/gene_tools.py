@@ -198,7 +198,8 @@ def get_gene_description(ctx: RunContext[GeneConfig], gene_id: str) -> str:
                 result = u.retrieve(gene_id, frmt="txt")
                 if result and result.strip() != "":
                     uniprot_info = result
-            except:
+            except Exception as e:
+                ctx.logger.error(f"Error retrieving UniProt information for {gene_id}: {str(e)}")
                 pass  # If direct lookup fails, continue with search
         
         # If we don't have UniProt info yet, try the search
