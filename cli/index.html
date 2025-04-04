@@ -1246,6 +1246,27 @@ conditions based on patient phenotypes.</p>
 <p><strong>Options:</strong></p>
 <div class="highlight"><pre><span></span><code>  --help  Show this message and exit.
 </code></pre></div>
+<h2 id="gene">gene</h2>
+<p>Start the Gene Agent for retrieving gene descriptions.</p>
+<p>The Gene Agent retrieves descriptions for gene identifiers using the UniProt API.
+It can process a single gene or a list of genes and returns detailed information
+about gene function, products, and associations.</p>
+<p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main gene [OPTIONS] [QUERY]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT           The model to use for the agent.
+  -w, --workdir TEXT         The working directory for the agent.  [default:
+                             workdir]
+  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
+                             share]
+  -p, --server-port INTEGER  The port to run the UI server on.  [default:
+                             7860]
+  --ui / --no-ui             Start the agent in UI mode instead of direct
+                             query mode.  [default: no-ui]
+  --help                     Show this message and exit.
+</code></pre></div>
 <h2 id="geturl">geturl</h2>
 <p>Retrieve content from a URL.</p>
 <p><strong>Usage:</strong></p>
