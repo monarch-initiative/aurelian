@@ -39,7 +39,7 @@ CORE_FIELDS = [NUMBER, TITLE, AUTHOR, URL, STATE, CREATED_AT, CLOSED_AT, BODY]
 ISSUE_FIELDS = CORE_FIELDS + [LABELS, ASSIGNEES]
 ISSUE_DETAIL_FIELDS = ISSUE_FIELDS + [COMMENTS]
 PR_FIELDS = CORE_FIELDS + [BASE_REF_NAME, HEAD_REF_NAME, IS_DRAFT, LABELS]
-PR_DETAIL_FIELDS = PR_FIELDS + [COMMITS, FILES, COMMENTS, REVIEWS]
+PR_DETAIL_FIELDS = PR_FIELDS + [COMMITS, FILES, COMMENTS, REVIEWS, CLOSING_ISSUES]
 SEARCH_CODE_FIELDS = [PATH, REPOSITORY, TEXT_MATCHES]
 
 async def _run_gh_command(args: List[str], cwd: Optional[str] = None) -> str:
@@ -67,7 +67,7 @@ async def _run_gh_command(args: List[str], cwd: Optional[str] = None) -> str:
     
     if proc.returncode != 0:
         error_msg = stderr.decode('utf-8').strip()
-        raise subprocess.CalledProcessError(proc.returncode, cmd, stdout + stderr, stderr)
+        raise subprocess.CalledProcessError(proc.returncode, cmd, stdout, stderr)
         
     return stdout.decode('utf-8').strip()
 
@@ -225,8 +225,7 @@ async def view_issue(
     if hasattr(workdir, 'location'):
         workdir = workdir.location
         
-    args = ["issue", "view", str(issue_number), "--json", ",".join(ISSUE_DETAIL_FIELDS),
-            "--color", "never"]
+    args = ["issue", "view", str(issue_number), "--json", ",".join(ISSUE_DETAIL_FIELDS)]
     
     if repo:
         args.extend(["--repo", repo])
@@ -251,7 +250,7 @@ async def get_pr_closing_issues(
         List of issues closed by the PR
     """
     pr_details = await view_pull_request(ctx, pr_number, repo)
-    return pr_details.get(CLOSING_ISSUES, [])
+    return pr_details.get("closingIssues", [])
 
 async def _run_git_command(args: List[str], cwd: Optional[str] = None) -> str:
     """
@@ -388,10 +387,6 @@ async def clone_repository(
     else:
         # Default to repo name
         directory = repo.split("/")[-1]
-
-    # check if directory exists
-    if os.path.exists(os.path.join(workdir, directory)):
-        raise FileExistsError(f"Directory {directory} already exists.")
     
     # Add branch if specified
     if branch:
