@@ -560,6 +560,29 @@ def gene(ui, query, **kwargs):
     run_agent("gene", "aurelian.agents.gene", query=query, ui=ui, **kwargs)
 
 
+@cli.command()
+@ui_option
+@workdir_option
+@share_option
+@server_port_option
+@click.argument("query", nargs=-1, required=False)
+def talisman(ui, query, **kwargs):
+    """Start the Talisman Agent for advanced gene analysis.
+    
+    The Talisman Agent retrieves descriptions for gene identifiers using UniProt and NCBI Entrez.
+    It can process a single gene, protein ID, or a list of genes and returns detailed information.
+    It also can analyze relationships between multiple genes to identify functional connections.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    
+    Examples:
+        aurelian talisman TP53
+        aurelian talisman "TP53, MDM2"
+        aurelian talisman "BRCA1, BRCA2, ATM, PARP1"
+    """
+    run_agent("talisman", "aurelian.agents.talisman", query=query, ui=ui, **kwargs)
+
+
 # DO NOT REMOVE THIS LINE
 # added this for mkdocstrings to work
 # see https://github.com/bruce-szalwinski/mkdocs-typer/issues/18
