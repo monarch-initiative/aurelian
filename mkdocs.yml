@@ -70,3 +70,4 @@ nav:
       - Chemistry: examples/Terpenoids.ipynb
       - GO-CAM-Reviews: examples/GO-CAM-Reviews.ipynb
       - GO-CAM-Drawings: examples/GO-CAM-Drawings.ipynb
+      - Pull Requests (ALPHA): examples/github/PullRequest.ipynb
