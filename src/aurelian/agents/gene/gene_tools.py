@@ -113,7 +113,7 @@ def get_ncbi_gene_info(ctx: RunContext[GeneConfig], gene_id: str) -> Optional[st
                     protein_data = protein_data.decode('utf-8')
                 elif isinstance(protein_data, str) and protein_data.startswith('b\''):
                     protein_data = protein_data[2:-1].replace('\\n', '\n')
-            except:
+            except UnicodeDecodeError:
                 pass
                 
             # Get additional details with esummary
@@ -198,7 +198,8 @@ def get_gene_description(ctx: RunContext[GeneConfig], gene_id: str) -> str:
                 result = u.retrieve(gene_id, frmt="txt")
                 if result and result.strip() != "":
                     uniprot_info = result
-            except:
+            except Exception as e:
+                ctx.logger.error(f"Error retrieving UniProt information for {gene_id}: {str(e)}")
                 pass  # If direct lookup fails, continue with search
         
         # If we don't have UniProt info yet, try the search
