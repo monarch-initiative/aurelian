@@ -2,6 +2,7 @@
 .gradio
 pdf_cache.sqlite
 docs/examples/output/
+.gene_requests_cache.sqlite
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
