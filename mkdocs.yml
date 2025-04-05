@@ -52,6 +52,8 @@ nav:
       - chemistry_agent: agents/chemistry_agent.md
       - d4d_agent: agents/d4d_agent.md
       - diagnosis_agent: agents/diagnosis_agent.md
+      - gene_agent: agents/gene_agent.md
+      - goann_agent: agents/goann_agent.md
       - gocam_agent: agents/gocam_agent.md
       - linkml_agent: agents/linkml_agent.md
       - monarch_agent: agents/monarch_agent.md
@@ -66,3 +68,5 @@ nav:
   - Test Results: test_results.md
   - Examples:
       - Chemistry: examples/Terpenoids.ipynb
+      - GO-CAM-Reviews: examples/GO-CAM-Reviews.ipynb
+      - GO-CAM-Drawings: examples/GO-CAM-Drawings.ipynb

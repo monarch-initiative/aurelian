@@ -7,7 +7,7 @@ THIS_DIR = Path(__file__).parent
 DOCUMENTS_DIR = THIS_DIR / "documents"
 
 # isort: skip_file
-from .gocam_agent import gocam_agent, add_documents  # noqa: E402
+from .gocam_agent import gocam_agent  # noqa: E402
 from .gocam_config import GOCAMDependencies, get_config  # noqa: E402
 from .gocam_gradio import chat  # noqa: E402
 from .gocam_tools import (  # noqa: E402
@@ -26,8 +26,6 @@ __all__ = [
     
     # Agent
     "gocam_agent",
-    "add_documents",
-    
     # Config
     "GOCAMDependencies",
     "get_config",

@@ -34,7 +34,7 @@ async def search_phenopackets(ctx: RunContext[PhenopacketsDependencies], query: 
     Returns:
         List[Dict]: List of phenopackets matching the query
     """
-    print(f"SEARCH PHENOPACKETS: {query}")
+    print(f"SEARCH PHENOPACKETS: {query} // {ctx.deps}")
     try:
         qr = ctx.deps.collection.search(query, index_name="llm", limit=ctx.deps.max_results)
         objs = []

@@ -42,6 +42,7 @@ class PhenopacketsDependencies(HasWorkdir):
         """
         if self._collection is None:
             client = Client()
+            print(f"Attaching to database: {self.db_path} with alias: {self.db_name}")
             client.attach_database(self.db_path, alias=self.db_name)
             db = client.databases[self.db_name]
             self._collection = db.get_collection(self.collection_name)
