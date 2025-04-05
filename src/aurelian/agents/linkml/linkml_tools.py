@@ -52,19 +52,19 @@ async def validate_then_save_schema(ctx: RunContext[HasWorkdir], schema_as_str: 
     try:
         schema_obj = yaml_loader.loads(schema_as_str, target_class=SchemaDefinition)
     except Exception as e:
-        raise SchemaValidationError(f"Schema does not validate: {e}")
+        raise ModelRetry(f"Schema does not validate: {e} // {schema_as_str}")
     try:
         gen = JsonSchemaGenerator(schema_obj)
         gen.serialize()
     except Exception as e:
-        raise SchemaValidationError(f"Schema does not convert to JSON-Schema: {e}")
+        raise ModelRetry(f"Schema does not convert to JSON-Schema: {e} // {schema_as_str}")
     try:
         if save_to_file and schema_as_str:
             msgs.append(f"Writing schema to {save_to_file}")
             workdir = ctx.deps.workdir
             workdir.write_file(save_to_file, schema_as_str)
     except Exception as e:
-        raise SchemaValidationError(f"Schema does not validate: {e}")
+        raise ModelRetry(f"Schema does not validate: {e} // {schema_as_str}")
     return ValidationResult(valid=True, info_messages=msgs)
 
 

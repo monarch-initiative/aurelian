@@ -68,9 +68,11 @@ async def find_disease_id(
         )
         
         if not results:
+            print(f"No results for query: {query} using {adapter}")
             raise ModelRetry(
                 f"No disease IDs found for query: {query}. Try a different search term."
             )
+        print(f"Got {len(results)} results for {query}")
             
         return results
     except Exception as e:

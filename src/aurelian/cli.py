@@ -559,6 +559,65 @@ def gene(ui, query, **kwargs):
     """
     run_agent("gene", "aurelian.agents.gene", query=query, ui=ui, **kwargs)
 
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def goann(ui, query, **kwargs):
+    """Start the GO Annotation Review Agent for evaluating GO annotations.
+    
+    The GO Annotation Review Agent helps review GO annotations for accuracy 
+    and proper evidence. It can evaluate annotations based on evidence codes,
+    identify potential over-annotations, and ensure compliance with GO guidelines,
+    particularly for transcription factors.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("goann", "aurelian.agents.goann", query=query, ui=ui, **kwargs)
+
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def github(ui, query, **kwargs):
+    """Start the GitHub Agent for repository interaction.
+    
+    The GitHub Agent provides a natural language interface for interacting with GitHub
+    repositories. It can list/view pull requests and issues, find connections between PRs 
+    and issues, search code, clone repositories, and examine commit history.
+    
+    Requires GitHub CLI (gh) to be installed and authenticated.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("github", "aurelian.agents.github", query=query, ui=ui, **kwargs)
+
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def draw(ui, query, **kwargs):
+    """Start the Draw Agent for creating SVG drawings.
+    
+    The Draw Agent creates SVG drawings based on text descriptions and provides 
+    feedback on drawing quality from an art critic judge. It helps generate visual 
+    representations from textual descriptions with a focus on clarity and simplicity.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("draw", "aurelian.agents.draw", query=query, ui=ui, **kwargs)
+
 
 # DO NOT REMOVE THIS LINE
 # added this for mkdocstrings to work

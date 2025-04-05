@@ -13,7 +13,7 @@ from aurelian.agents.gocam.gocam_tools import (
     lookup_uniprot_entry,
     all_documents,
     fetch_document,
-    validate_gocam_model, lookup_gocam_local,
+    lookup_gocam_local,
 )
 from aurelian.agents.literature.literature_tools import (
     lookup_pmid as literature_lookup_pmid,
@@ -223,6 +223,7 @@ def add_documents(ctx: RunContext[GOCAMDependencies]) -> str:
         A string containing the list of available GO-CAM documents
     """
     return get_documents_for_prompt()
+
 
 REVIEW_SUMMARIZER_SYSTEM = """Your job is to summarize the existing review of a GO-CAM model, completing
 the rubric for all of the criteria.

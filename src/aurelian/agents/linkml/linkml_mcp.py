@@ -14,7 +14,6 @@ from aurelian.utils.search_utils import web_search
 # Initialize FastMCP server
 mcp = FastMCP("linkml", instructions=SYSTEM)
 
-import logfire
 from linkml_runtime.loaders import yaml_loader
 from linkml_runtime.linkml_model import SchemaDefinition
 from linkml.validator import validate
@@ -112,7 +111,6 @@ async def validate_data(schema: str, data_file: str) -> str:
     Returns:
 
     """
-    logfire.log(f"Validating data file: {data_file} using schema: {schema}")
     print(f"Validating data file: {data_file} using schema: {schema}")
     try:
         schema = yaml_loader.loads(schema, target_class=SchemaDefinition)
