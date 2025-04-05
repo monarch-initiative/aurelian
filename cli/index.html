@@ -424,6 +424,50 @@
   
   
     <li class="md-nav__item">
+      <a href="../agents/gene_agent.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    gene_agent
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agents/goann_agent.md" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    goann_agent
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../agents/gocam_agent/" class="md-nav__link">
         
   
@@ -821,6 +865,72 @@
   
   <span class="md-ellipsis">
     Chemistry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/GO-CAM-Reviews/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GO-CAM-Reviews
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/GO-CAM-Drawings/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GO-CAM-Drawings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/github/PullRequest.ipynb" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pull Requests (ALPHA)
     
   </span>
   
@@ -1238,6 +1348,27 @@ conditions based on patient phenotypes.</p>
                              query mode.  [default: no-ui]
   --help                     Show this message and exit.
 </code></pre></div>
+<h2 id="draw">draw</h2>
+<p>Start the Draw Agent for creating SVG drawings.</p>
+<p>The Draw Agent creates SVG drawings based on text descriptions and provides 
+feedback on drawing quality from an art critic judge. It helps generate visual 
+representations from textual descriptions with a focus on clarity and simplicity.</p>
+<p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main draw [OPTIONS] [QUERY]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT           The model to use for the agent.
+  -w, --workdir TEXT         The working directory for the agent.  [default:
+                             workdir]
+  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
+                             share]
+  -p, --server-port INTEGER  The port to run the UI server on.  [default:
+                             7860]
+  --ui / --no-ui             Start the agent in UI mode instead of direct
+                             query mode.  [default: no-ui]
+  --help                     Show this message and exit.
+</code></pre></div>
 <h2 id="fulltext">fulltext</h2>
 <p>Download full text for a PubMed article.</p>
 <p><strong>Usage:</strong></p>
@@ -1274,6 +1405,50 @@ about gene function, products, and associations.</p>
 </code></pre></div>
 <p><strong>Options:</strong></p>
 <div class="highlight"><pre><span></span><code>  --help  Show this message and exit.
+</code></pre></div>
+<h2 id="github">github</h2>
+<p>Start the GitHub Agent for repository interaction.</p>
+<p>The GitHub Agent provides a natural language interface for interacting with GitHub
+repositories. It can list/view pull requests and issues, find connections between PRs 
+and issues, search code, clone repositories, and examine commit history.</p>
+<p>Requires GitHub CLI (gh) to be installed and authenticated.</p>
+<p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main github [OPTIONS] [QUERY]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT           The model to use for the agent.
+  -w, --workdir TEXT         The working directory for the agent.  [default:
+                             workdir]
+  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
+                             share]
+  -p, --server-port INTEGER  The port to run the UI server on.  [default:
+                             7860]
+  --ui / --no-ui             Start the agent in UI mode instead of direct
+                             query mode.  [default: no-ui]
+  --help                     Show this message and exit.
+</code></pre></div>
+<h2 id="goann">goann</h2>
+<p>Start the GO Annotation Review Agent for evaluating GO annotations.</p>
+<p>The GO Annotation Review Agent helps review GO annotations for accuracy 
+and proper evidence. It can evaluate annotations based on evidence codes,
+identify potential over-annotations, and ensure compliance with GO guidelines,
+particularly for transcription factors.</p>
+<p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main goann [OPTIONS] [QUERY]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT           The model to use for the agent.
+  -w, --workdir TEXT         The working directory for the agent.  [default:
+                             workdir]
+  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
+                             share]
+  -p, --server-port INTEGER  The port to run the UI server on.  [default:
+                             7860]
+  --ui / --no-ui             Start the agent in UI mode instead of direct
+                             query mode.  [default: no-ui]
+  --help                     Show this message and exit.
 </code></pre></div>
 <h2 id="gocam">gocam</h2>
 <p>Start the GO-CAM Agent for gene ontology causal activity models.</p>
