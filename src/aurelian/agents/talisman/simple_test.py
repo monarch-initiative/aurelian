@@ -5,6 +5,7 @@ Simplified test script for the gene analysis functionality.
 
 import os
 import sys
+import time
 import openai
 
 from bioservices import UniProt
@@ -25,6 +26,8 @@ def get_gene_info(gene_id):
     # Try UniProt first
     try:
         u = UniProt(verbose=False)
+        # Rate limit to max 3 requests per second
+        time.sleep(0.34)
         uniprot_info = u.search(f'gene:{gene_id} OR accession:{gene_id} OR id:{gene_id}', 
                                frmt="tsv", columns="accession,id,gene_names,organism,protein_name,function")
         if uniprot_info and uniprot_info.strip() != "":
@@ -35,26 +38,31 @@ def get_gene_info(gene_id):
     
     # Fall back to NCBI
     try:
-        ncbi = NCBI(email="gene_agent@aurelian.app")
+        ncbi = NCBI(email="MJoachimiak@lbl.gov")
         
         # Try gene database
+        time.sleep(0.34)  # Rate limit to max 3 requests per second
         search_results = ncbi.ESearch("gene", gene_id)
         gene_ids = search_results.get('idlist', [])
         
         if gene_ids:
             gene_id = gene_ids[0]
+            time.sleep(0.34)  # Rate limit to max 3 requests per second
             gene_data = ncbi.EFetch("gene", id=gene_id)
             return f"NCBI Gene Information:\n{gene_data}"
             
         # Try protein database
+        time.sleep(0.34)  # Rate limit to max 3 requests per second
         search_results = ncbi.ESearch("protein", gene_id)
         protein_ids = search_results.get('idlist', [])
         
         if protein_ids:
             protein_id = protein_ids[0]
+            time.sleep(0.34)  # Rate limit to max 3 requests per second
             protein_data = ncbi.EFetch("protein", id=protein_id, rettype="fasta", retmode="text")
             
             # Get additional details with esummary
+            time.sleep(0.34)  # Rate limit to max 3 requests per second
             summary_data = ncbi.ESummary("protein", id=protein_id)
             
             if isinstance(summary_data, dict) and summary_data:
@@ -119,6 +127,34 @@ Focus particularly on identifying relationships between at least a pair of these
 If the genes appear unrelated, note this but try to identify any subtle connections based on their function.
 
 Format the response with appropriate markdown headings and bullet points.
+
+IMPORTANT: You MUST include ALL of the following sections in your response:
+
+1. First provide your detailed analysis with appropriate headings for each section.
+
+2. After your analysis, include a distinct section titled "## Terms" 
+that contains a semicolon-delimited list of functional terms relevant to the gene set, 
+ordered by relevance. These terms should include:
+- Gene Ontology biological process terms (e.g., DNA repair, oxidative phosphorylation, signal transduction)
+- Molecular function terms (e.g., kinase activity, DNA binding, transporter activity)
+- Cellular component/localization terms (e.g., nucleus, plasma membrane, mitochondria)
+- Pathway names (e.g., glycolysis, TCA cycle, MAPK signaling)
+- Co-regulation terms (e.g., stress response regulon, heat shock response)
+- Interaction networks (e.g., protein complex formation, signaling cascade)
+- Metabolic process terms (e.g., fatty acid synthesis, amino acid metabolism)
+- Regulatory mechanisms (e.g., transcriptional regulation, post-translational modification)
+- Disease associations (if relevant, e.g., virulence, pathogenesis, antibiotic resistance)
+- Structural and functional domains/motifs (e.g., helix-turn-helix, zinc finger)
+
+Example of Terms section:
+## Terms
+DNA damage response; p53 signaling pathway; apoptosis; cell cycle regulation; tumor suppression; DNA repair; protein ubiquitination; transcriptional regulation; nuclear localization; cancer predisposition
+
+3. After the Terms section, include a summary table of the genes analyzed titled "## Gene Summary Table"
+Format it as a markdown table with columns for Gene Symbol and brief description from the gene information.
+Make sure the descriptions are accurate based on the gene information provided and do not conflate with similarly named genes from different organisms.
+
+REMEMBER: ALL THREE SECTIONS ARE REQUIRED - Main Analysis, Terms, and Gene Summary Table.
 """
     
     print("Generating biological analysis...")
@@ -128,11 +164,11 @@ Format the response with appropriate markdown headings and bullet points.
         response = openai.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a biology expert analyzing gene sets to identify functional relationships."},
+                {"role": "system", "content": "You are a biology expert analyzing gene sets to identify functional relationships. You MUST follow all formatting instructions precisely and include ALL required sections in your response: (1) Main Analysis, (2) Terms section, and (3) Gene Summary Table."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
-            max_tokens=2000
+            max_tokens=4000
         )
         
         analysis = response.choices[0].message.content
