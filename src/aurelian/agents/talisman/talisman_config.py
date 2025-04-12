@@ -34,7 +34,7 @@ class TalismanConfig(HasWorkdir):
             self.uniprot_client_options = {"verbose": False}
             
         if self.ncbi_client_options is None or len(self.ncbi_client_options) == 0:
-            self.ncbi_client_options = {"verbose": False, "email": "talisman_agent@aurelian.app"}
+            self.ncbi_client_options = {"verbose": False, "email": "MJoachimiak@lbl.gov"}
         
         # Initialize the workdir if not already set
         if self.workdir is None:

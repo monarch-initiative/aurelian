@@ -62,6 +62,53 @@ For gene set analysis, you will receive a detailed summary of:
 - Coordinated activities or cooperative functions
 - Any disease associations that multiple genes in this set share
 
+The analysis will cover multiple types of relationships:
+- Functional relationships
+- Pathway relationships
+- Regulatory relationships
+- Localization patterns
+- Physical interactions
+- Genetic interactions
+
+IMPORTANT: For gene set analysis, ALWAYS include a distinct section titled "## Terms" 
+that contains a semicolon-delimited list of functional terms relevant to the gene set, 
+ordered by relevance. These terms should include:
+- Gene Ontology biological process terms (e.g., DNA repair, oxidative phosphorylation, signal transduction)
+- Molecular function terms (e.g., kinase activity, DNA binding, transporter activity)
+- Cellular component/localization terms (e.g., nucleus, plasma membrane, mitochondria)
+- Pathway names (e.g., glycolysis, TCA cycle, MAPK signaling)
+- Co-regulation terms (e.g., stress response regulon, heat shock response)
+- Interaction networks (e.g., protein complex formation, signaling cascade)
+- Metabolic process terms (e.g., fatty acid synthesis, amino acid metabolism)
+- Regulatory mechanisms (e.g., transcriptional regulation, post-translational modification)
+- Disease associations (if relevant, e.g., virulence, pathogenesis, antibiotic resistance)
+- Structural and functional domains/motifs (e.g., helix-turn-helix, zinc finger)
+
+Example of Terms section:
+## Terms
+DNA damage response; p53 signaling pathway; apoptosis; cell cycle regulation; tumor suppression; DNA repair; protein ubiquitination; transcriptional regulation; nuclear localization; cancer predisposition
+
+IMPORTANT: After the Terms section, ALWAYS include a "## Gene Summary Table" with a markdown table 
+summarizing the genes analyzed, with the following columns in this exact order:
+- ID: The gene identifier (same as Gene Symbol)
+- Annotation: Genomic coordinates or accession with position information
+- Genomic Context: Information about the genomic location (chromosome, plasmid, etc.)
+- Organism: The organism the gene belongs to
+- Description: The protein/gene function description
+
+Example of Gene Summary Table:
+## Gene Summary Table
+| ID | Annotation | Genomic Context | Organism | Description |
+|-------------|-------------|----------|----------------|------------|
+| BRCA1 | NC_000017.11 (43044295..43125483) | Chromosome 17 | Homo sapiens | Breast cancer type 1 susceptibility protein |
+| TP53 | NC_000017.11 (7668402..7687550) | Chromosome 17 | Homo sapiens | Tumor suppressor protein |
+
+For bacterial genes, the table format would be:
+| ID | Annotation | Genomic Context | Organism | Description |
+|-------------|-------------|----------|----------------|------------|
+| invA | NC_003197.2 (3038407..3040471, complement) | Chromosome | Salmonella enterica | Invasion protein |
+| DVUA0001 | NC_005863.1 (699..872, complement) | Plasmid pDV | Desulfovibrio vulgaris str. Hildenborough | Hypothetical protein |
+
 Use this information to help researchers understand the potential functional relationships between genes.
 """
 

@@ -5,6 +5,7 @@ This script tests the lookup of protein information using the 8YJT_C2 example.
 """
 
 import sys
+import time
 from bioservices.eutils import EUtils as NCBI
 
 def test_protein_lookup(protein_id):
@@ -16,7 +17,7 @@ def test_protein_lookup(protein_id):
     Returns:
         The protein information
     """
-    ncbi = NCBI(email="talisman_agent@aurelian.app")
+    ncbi = NCBI(email="MJoachimiak@lbl.gov")
     
     print(f"Talisman Agent - Looking up protein: {protein_id}")
     
@@ -31,9 +32,15 @@ def test_protein_lookup(protein_id):
     print(f"Found protein IDs: {protein_ids}")
     protein_id = protein_ids[0]
     
+    # Wait at least 1/3 second before next request (max 3 req/sec)
+    time.sleep(0.34)
+    
     # Get protein sequence
     print(f"Fetching protein sequence for ID: {protein_id}")
     protein_data = ncbi.EFetch("protein", id=protein_id, rettype="fasta", retmode="text")
+    
+    # Wait at least 1/3 second before next request (max 3 req/sec)
+    time.sleep(0.34)
     
     # Get protein summary
     print("Fetching protein summary")

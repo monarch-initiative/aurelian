@@ -560,7 +560,7 @@ def gene(ui, query, **kwargs):
     run_agent("gene", "aurelian.agents.gene", query=query, ui=ui, **kwargs)
 
 
-@cli.command()
+@main.command()
 @ui_option
 @workdir_option
 @share_option
