@@ -66,8 +66,7 @@ async def test_perplexity_query(mock_agent, mock_openai_model):
         assert result.citations[1].url == "https://example.com/citation2"
         
         # Verify the mock was called with expected arguments
-        formatted_query = "Test query about science Return the response with xml tags <answer> and <citations>, where citations includes a list with the citation_number, url, and timestamp for the retrieved citations"
-        mock_agent.run_sync.assert_called_once_with(formatted_query)
+        mock_agent.run_sync.assert_called_once_with("Test query about science")
 
 
 @pytest.mark.asyncio
@@ -140,7 +139,7 @@ async def test_perplexity_query_parsing_error(mock_agent, mock_openai_model):
     """Test the perplexity_query function with a response that causes a parsing error."""
     # Setup the mock to return a malformed response
     mock_result = MagicMock()
-    mock_result.data = "Malformed response with no XML tags"
+    mock_result.data = "<malformed>XML that will cause parsing error"
     mock_agent.run_sync.return_value = mock_result
     
     # Set environment variable for test
