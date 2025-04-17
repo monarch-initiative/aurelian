@@ -104,5 +104,5 @@ async def perplexity_query(query: str, model_name: str = "sonar") -> ResultWithC
                 )
         
         return ResultWithCitations(content=content, citations=citations_list)
-    except Exception as e:
+    except ET.ParseError as e:
         raise RuntimeError(f"Failed to parse Perplexity response: {e}")
