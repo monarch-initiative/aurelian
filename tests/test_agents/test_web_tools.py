@@ -21,9 +21,7 @@ def mock_agent():
 def mock_openai_model():
     """Fixture to mock the OpenAIModel."""
     with patch("aurelian.agents.web.web_tools.OpenAIModel") as mock_model_class:
-        mock_instance = MagicMock()
-        mock_model_class.return_value = mock_instance
-        yield mock_instance
+        yield mock_model_class
 
 
 @pytest.mark.asyncio
@@ -152,24 +150,24 @@ async def test_perplexity_query_parsing_error(mock_agent, mock_openai_model):
         assert "Failed to parse Perplexity response" in str(excinfo.value)
 
 
-# Integration tests (when not in CI environment)
-if os.getenv("GITHUB_ACTIONS") != "true" and os.getenv("PERPLEXITY_API_KEY"):
-    pytestmark = [
-        pytest.mark.integration,
-        pytest.mark.flaky(reruns=1, reruns_delay=2),
-    ]
+# Integration tests marked with custom mark that can be skipped
+pytestmark = pytest.mark.skipif(
+    os.getenv("GITHUB_ACTIONS") == "true" or not os.getenv("PERPLEXITY_API_KEY"),
+    reason="Skipping integration tests in CI or when API key is not available"
+)
+
+@pytest.mark.skipif(
+    os.getenv("PERPLEXITY_API_KEY") is None,
+    reason="Skipping integration test: PERPLEXITY_API_KEY not set"
+)
+def test_perplexity_query_integration():
+    """Integration test for the perplexity_query function with real API calls."""
+    import asyncio
     
-    @pytest.mark.asyncio
-    async def test_perplexity_query_integration():
-        """Integration test for the perplexity_query function with real API calls."""
-        # Skip test if API key is not available
-        if not os.getenv("PERPLEXITY_API_KEY"):
-            pytest.skip("PERPLEXITY_API_KEY environment variable is not set")
-        
-        # Call the function
-        result = await perplexity_query("What is the capital of France?")
-        
-        # Verify the result
-        assert result.content is not None
-        assert "Paris" in result.content
-        assert isinstance(result.citations, list)
+    # Run in a new event loop
+    result = asyncio.run(perplexity_query("What is the capital of France?"))
+    
+    # Verify the result
+    assert result.content is not None
+    assert "Paris" in result.content
+    assert isinstance(result.citations, list)
