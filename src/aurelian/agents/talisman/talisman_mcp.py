@@ -1,5 +1,5 @@
 """
-MCP integration for the Gene agent.
+MCP integration for the Talisman agent.
 """
 import json
 import os
@@ -9,8 +9,8 @@ from anthropic import Anthropic
 from pydantic_ai import Agent
 
 # Import directly from the MCP module
-from .gene_agent import gene_agent, GENE_SYSTEM_PROMPT
-from .gene_config import GeneConfig, get_config
+from .talisman_agent import talisman_agent, TALISMAN_SYSTEM_PROMPT
+from .talisman_config import TalismanConfig, get_config
 
 
 def tools_to_anthropic_tools(agent: Agent) -> List[Dict[str, Any]]:
@@ -85,20 +85,20 @@ def create_bedrock_compatible_resp(
     }
 
 
-def get_gene_mcp_tools() -> List[Dict[str, Any]]:
-    """Get the MCP tools for the Gene agent.
+def get_talisman_mcp_tools() -> List[Dict[str, Any]]:
+    """Get the MCP tools for the Talisman agent.
 
     Returns:
         A list of tools in the MCP format
     """
-    return tools_to_anthropic_tools(gene_agent)
+    return tools_to_anthropic_tools(talisman_agent)
 
 
-def get_gene_mcp_messages(
+def get_talisman_mcp_messages(
     messages: Optional[List[Dict[str, Any]]] = None,
     system: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Get MCP messages for the Gene agent.
+    """Get MCP messages for the Talisman agent.
 
     Args:
         messages: Previous messages
@@ -111,7 +111,7 @@ def get_gene_mcp_messages(
         messages = []
     
     if system is None:
-        system = GENE_SYSTEM_PROMPT
+        system = TALISMAN_SYSTEM_PROMPT
     
     if not messages or messages[0].get("role") != "system":
         messages = [{"role": "system", "content": system}] + messages
@@ -119,18 +119,18 @@ def get_gene_mcp_messages(
     return messages
 
 
-def handle_gene_mcp_request(
+def handle_talisman_mcp_request(
     messages: List[Dict[str, Any]],
-    config: Optional[GeneConfig] = None,
+    config: Optional[TalismanConfig] = None,
     model: str = "claude-3-5-sonnet-20240620",
     max_tokens: int = 4096,
     temperature: float = 0.0,
 ) -> Dict[str, Any]:
-    """Handle an MCP request for the Gene agent.
+    """Handle an MCP request for the Talisman agent.
 
     Args:
         messages: The messages from the client
-        config: The Gene configuration (optional)
+        config: The Talisman configuration (optional)
         model: The model to use
         max_tokens: The maximum number of tokens to generate
         temperature: The temperature to use for generation
@@ -147,8 +147,8 @@ def handle_gene_mcp_request(
     client = Anthropic(api_key=api_key)
     
     # Prepare the messages and tools
-    mcp_messages = get_gene_mcp_messages(messages)
-    mcp_tools = get_gene_mcp_tools()
+    mcp_messages = get_talisman_mcp_messages(messages)
+    mcp_tools = get_talisman_mcp_tools()
     
     # Send the request to Anthropic
     response = client.messages.create(

@@ -1,5 +1,5 @@
 """
-Configuration for the Gene agent.
+Configuration for the Talisman agent.
 """
 from dataclasses import dataclass, field
 import os
@@ -12,8 +12,8 @@ from aurelian.dependencies.workdir import HasWorkdir, WorkDir
 
 
 @dataclass
-class GeneConfig(HasWorkdir):
-    """Configuration for the Gene agent."""
+class TalismanConfig(HasWorkdir):
+    """Configuration for the Talisman agent."""
 
     # Options for the bioservices UniProt client
     uniprot_client_options: Dict[str, Any] = field(default_factory=dict)
@@ -34,7 +34,7 @@ class GeneConfig(HasWorkdir):
             self.uniprot_client_options = {"verbose": False}
             
         if self.ncbi_client_options is None or len(self.ncbi_client_options) == 0:
-            self.ncbi_client_options = {"verbose": False, "email": "gene_agent@aurelian.app"}
+            self.ncbi_client_options = {"verbose": False, "email": "MJoachimiak@lbl.gov"}
         
         # Initialize the workdir if not already set
         if self.workdir is None:
@@ -54,12 +54,12 @@ class GeneConfig(HasWorkdir):
         return NCBI(**self.ncbi_client_options)
 
 
-def get_config() -> GeneConfig:
-    """Get the Gene configuration from environment variables or defaults."""
+def get_config() -> TalismanConfig:
+    """Get the Talisman configuration from environment variables or defaults."""
     workdir_path = os.environ.get("AURELIAN_WORKDIR", None)
     workdir = WorkDir(location=workdir_path) if workdir_path else None
     
-    return GeneConfig(
+    return TalismanConfig(
         workdir=workdir,
         uniprot_client_options={"verbose": False},
         ncbi_client_options={"verbose": False}
