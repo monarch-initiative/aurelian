@@ -45,6 +45,21 @@ def test_protein_lookup(mock_ncbi):
         mock_ctx = MagicMock()
         mock_ctx.deps = get_config()
         
+        # Configure mock to force protein search branch
+        # We need to set ESearch to return empty idlist for gene search but not for protein search
+        def mock_esearch_side_effect(db, query, *args, **kwargs):
+            if db == "gene":
+                # For gene database, return empty result
+                return {"idlist": []}
+            elif db == "protein":
+                # For protein database, return an ID
+                return {"idlist": ["12345"]}
+            else:
+                # For other db, empty result
+                return {"idlist": []}
+                
+        mock_ncbi.ESearch.side_effect = mock_esearch_side_effect
+        
         # Test with a protein ID
         result = get_ncbi_gene_info(mock_ctx, "TP53")
         
@@ -56,4 +71,5 @@ def test_protein_lookup(mock_ncbi):
         # Verify that the correct methods were called
         mock_ncbi.ESearch.assert_called()
         mock_ncbi.EFetch.assert_called()
+        # ESummary is called in the protein branch
         mock_ncbi.ESummary.assert_called()
