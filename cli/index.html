@@ -1608,6 +1608,30 @@ starting an individual UI.</p>
 <div class="highlight"><pre><span></span><code>  -l, --limit INTEGER  Number of results to return.  [default: 10]
   --help               Show this message and exit.
 </code></pre></div>
+<h2 id="talisman">talisman</h2>
+<p>Start the Talisman Agent for advanced gene analysis.</p>
+<p>The Talisman Agent retrieves descriptions for gene identifiers using UniProt and NCBI Entrez.
+It can process a single gene, protein ID, or a list of genes and returns detailed information.
+It also can analyze relationships between multiple genes to identify functional connections.</p>
+<p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
+<p>Examples:
+    aurelian talisman TP53
+    aurelian talisman "TP53, MDM2"
+    aurelian talisman "BRCA1, BRCA2, ATM, PARP1"</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main talisman [OPTIONS] [QUERY]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  --ui / --no-ui             Start the agent in UI mode instead of direct
+                             query mode.  [default: no-ui]
+  -w, --workdir TEXT         The working directory for the agent.  [default:
+                             workdir]
+  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
+                             share]
+  -p, --server-port INTEGER  The port to run the UI server on.  [default:
+                             7860]
+  --help                     Show this message and exit.
+</code></pre></div>
 <h2 id="ubergraph">ubergraph</h2>
 <p>Start the UberGraph Agent for SPARQL-based ontology queries.</p>
 <p>The UberGraph Agent provides a natural language interface to query ontologies 
