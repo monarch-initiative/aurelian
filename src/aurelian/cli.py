@@ -1,9 +1,12 @@
 """Command line interface for Aurelian agents."""
 
 import logging
-from typing import Optional, List
+import os
+from typing import Any, Awaitable, Callable, Optional, List
 
 import click
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from aurelian import __version__
 
@@ -26,6 +29,12 @@ model_option = click.option(
     "--model",
     "-m",
     help="The model to use for the agent.",
+)
+use_cborg_option = click.option(
+    "--use-cborg/--no-use-cborg",
+    default=False,
+    show_default=True,
+    help="Use CBORG as a model proxy (LBNL account required).",
 )
 agent_option = click.option(
     "--agent",
@@ -50,6 +59,12 @@ ui_option = click.option(
     default=False,
     show_default=True,
     help="Start the agent in UI mode instead of direct query mode.",
+)
+run_evals_option = click.option(
+    "--run-evals/--no-run-evals",
+    default=False,
+    show_default=True,
+    help="Run the agent in evaluation mode.",
 )
 ontologies_option = click.option(
     "--ontologies",
@@ -126,6 +141,7 @@ def run_agent(
     specialist_agent_name: Optional[str] = None,
     agent_func_name: str = "run_sync",
     join_char: str = " ",
+    use_cborg: bool = False,
     **kwargs
 ) -> None:
     """Run an agent in either UI or direct query mode.
@@ -140,6 +156,7 @@ def run_agent(
         join_char: Character to join multi-part queries with
         kwargs: Additional arguments for the agent
     """
+    # DEPRECATED: use the new agent command instead
     # Import required modules
     # These are imported dynamically to avoid loading all agents on startup
     if not agent_module:
@@ -155,7 +172,7 @@ def run_agent(
     get_config = config_module.get_config
     
     # Process agent and UI options
-    agent_keys = ["model", "workdir", "ontologies", "db_path", "collection_name"]
+    agent_keys = ["model", "use_cborg", "workdir", "ontologies", "db_path", "collection_name"]
     agent_options, launch_options = split_options(kwargs, agent_keys=agent_keys)
 
     deps = get_config()
@@ -168,15 +185,126 @@ def run_agent(
     # Remove workdir from agent options to avoid duplicates
     agent_run_options = {k: v for k, v in agent_options.items() if k != 'workdir'}
 
+    if use_cborg:
+        cborg_api_key = os.environ.get("CBORG_API_KEY")
+        model = OpenAIModel(
+            agent_run_options.get("model", kwargs.get("model", "openai:gpt-4o")),
+            provider=OpenAIProvider(
+                base_url="https://api.cborg.lbl.gov",
+                api_key=cborg_api_key),
+        )
+        print(f"CBORG model: {model}")
+        agent_run_options["model"] = model
+
     # Run in appropriate mode
     if not ui and query:
         # Direct query mode
         
         # Run the agent and print results
-        r = getattr(agent, agent_func_name)(join_char.join(query), deps=deps, **agent_run_options)
+        agent_run_func = getattr(agent, agent_func_name)
+        r = agent_run_func(join_char.join(query), deps=deps, **agent_run_options)
         print(r.data)
+        mjb = r.all_messages_json()
+        # decode messages from json bytes to dict:
+        if isinstance(mjb, bytes):
+            mjb = mjb.decode()
+        # print the messages
+        import json
+        all_messages = json.loads(mjb)
+        import yaml
+        # print(yaml.dump(all_messages, indent=2))
     else:
         print(f"Running {agent_name} in UI mode, agent options: {agent_options}")
+        # UI mode
+        gradio_ui = chat_func(deps=deps, **agent_run_options)
+        gradio_ui.launch(**launch_options)
+
+
+@main.command()
+@agent_option
+@model_option
+@use_cborg_option
+@share_option
+@server_port_option
+@workdir_option
+@ui_option  
+@run_evals_option
+@click.argument("query", nargs=-1, required=False)
+def agent(ui, query, agent, use_cborg=False, run_evals=False, **kwargs):
+    """NEW: Generic agent runner.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    if not agent:
+        raise click.UsageError("Error: --agent is required")
+    agent_module = f"aurelian.agents.{agent}"
+    specialist_agent_name = agent
+    gradio_module = __import__(f"{agent_module}.{agent}_gradio", fromlist=["chat"])
+    agent_class = __import__(f"{agent_module}.{agent}_agent", fromlist=[f"{specialist_agent_name}_agent"])
+    config_module = __import__(f"{agent_module}.{agent}_config", fromlist=["get_config"])
+    
+    chat_func = gradio_module.chat
+    agent_obj = getattr(agent_class, f"{specialist_agent_name}_agent")
+    get_config = config_module.get_config
+    
+    # Process agent and UI options
+    agent_keys = ["model", "use_cborg", "workdir", "ontologies", "db_path", "collection_name"]
+    agent_options, launch_options = split_options(kwargs, agent_keys=agent_keys)
+
+    deps = get_config()
+
+    # Set workdir if provided
+    if hasattr(deps, 'workdir'):
+        deps.workdir.location = kwargs['workdir']
+
+    # Remove workdir from agent options to avoid duplicates
+    agent_run_options = {k: v for k, v in agent_options.items() if k != 'workdir'}
+
+    # TODO: make this generic, for any proxy model
+    if use_cborg:
+        cborg_api_key = os.environ.get("CBORG_API_KEY")
+        model = OpenAIModel(
+            agent_run_options.get("model", "openai:gpt-4o"),
+            provider=OpenAIProvider(
+                base_url="https://api.cborg.lbl.gov",
+                api_key=cborg_api_key),
+        )
+        agent_run_options["model"] = model
+
+    # Run in appropriate mode
+    if not ui and query:
+        # Direct query mode
+        join_char = " "
+        # Run the agent and print results
+        agent_run_func = getattr(agent_obj, "run_sync")
+        r = agent_run_func(join_char.join(query), deps=deps, **agent_run_options)
+        print(r.data)
+        mjb = r.all_messages_json()
+        # decode messages from json bytes to dict:
+        if isinstance(mjb, bytes):
+            mjb = mjb.decode()
+        # print the messages
+        import json
+        all_messages = json.loads(mjb)
+        import yaml
+        # print(yaml.dump(all_messages, indent=2))
+    elif run_evals:
+        import sys
+        import importlib
+        # TODO: make this generic
+        package_name = f"{agent_module}.{agent}_evals"
+        module = importlib.import_module(package_name)
+        dataset = module.create_eval_dataset()
+
+        async def run_agent(inputs: str) -> Any:
+            result = await agent_obj.run(inputs, deps=deps, **agent_run_options)
+            return result.data
+        
+        eval_func: Callable[[str], Awaitable[str]] = run_agent
+        report = dataset.evaluate_sync(eval_func)
+        report.print(include_input=True, include_output=True)
+    else:
+        print(f"Running {agent} in UI mode, agent options: {agent_options}")
         # UI mode
         gradio_ui = chat_func(deps=deps, **agent_run_options)
         gradio_ui.launch(**launch_options)
@@ -206,6 +334,7 @@ def search_ontology(ontology: str, term: str, **kwargs):
 @main.command()
 @agent_option
 @model_option
+@use_cborg_option
 @share_option
 @server_port_option
 @ui_option
@@ -220,6 +349,7 @@ def gocam(ui, query, agent, **kwargs):
     Run with a query for direct mode or with --ui for interactive chat mode.
     """
     run_agent("gocam", "aurelian.agents.gocam", query=query, ui=ui, specialist_agent_name=agent, **kwargs)
+
 
 
 @main.command()
@@ -559,6 +689,66 @@ def gene(ui, query, **kwargs):
     """
     run_agent("gene", "aurelian.agents.gene", query=query, ui=ui, **kwargs)
 
+@main.command()
+@model_option
+@use_cborg_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def goann(ui, query, **kwargs):
+    """Start the GO Annotation Review Agent for evaluating GO annotations.
+    
+    The GO Annotation Review Agent helps review GO annotations for accuracy 
+    and proper evidence. It can evaluate annotations based on evidence codes,
+    identify potential over-annotations, and ensure compliance with GO guidelines,
+    particularly for transcription factors.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("goann", "aurelian.agents.goann", query=query, ui=ui, **kwargs)
+
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def github(ui, query, **kwargs):
+    """Start the GitHub Agent for repository interaction.
+    
+    The GitHub Agent provides a natural language interface for interacting with GitHub
+    repositories. It can list/view pull requests and issues, find connections between PRs 
+    and issues, search code, clone repositories, and examine commit history.
+    
+    Requires GitHub CLI (gh) to be installed and authenticated.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("github", "aurelian.agents.github", query=query, ui=ui, **kwargs)
+
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def draw(ui, query, **kwargs):
+    """Start the Draw Agent for creating SVG drawings.
+    
+    The Draw Agent creates SVG drawings based on text descriptions and provides 
+    feedback on drawing quality from an art critic judge. It helps generate visual 
+    representations from textual descriptions with a focus on clarity and simplicity.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("draw", "aurelian.agents.draw", query=query, ui=ui, **kwargs)
+
 
 @main.command()
 @ui_option
@@ -581,6 +771,23 @@ def talisman(ui, query, **kwargs):
         aurelian talisman "BRCA1, BRCA2, ATM, PARP1"
     """
     run_agent("talisman", "aurelian.agents.talisman", query=query, ui=ui, **kwargs)
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def reaction(ui, query, **kwargs):
+    """Start the Reaction Agent for biochemical reaction query and curation.
+    
+    The Reaction Agent helps query and curate biochemical reactions from various sources
+    including RHEA and UniProt. It can identify enzymes, substrates, products, and 
+    extract reaction information from scientific text.
+    
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("reaction", "aurelian.agents.reaction", query=query, ui=ui, **kwargs)
+
 
 
 # DO NOT REMOVE THIS LINE
