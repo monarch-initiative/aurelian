@@ -75,6 +75,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#perplexity-example" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -824,6 +829,8 @@
   
   
   
+    
+  
   
 </nav>
                   </div>
@@ -838,8 +845,6 @@
                   
 
 
-
-  <h1>Perplexity Example</h1>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 <script>
@@ -871,6 +876,675 @@
   document.addEventListener('DOMContentLoaded', addWidgetsRenderer);
 }());
 </script>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html"></div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="perplexity-example">Perplexity Example</h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="n">load_dotenv</span><span class="p">(</span><span class="s2">&quot;../../.env&quot;</span><span class="p">)</span> 
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_text output_subarea output_execute_result">
+<pre>
+<code>True</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="c1"># find all keys for env vars</span>
+<span class="c1"># for </span>
+</code></pre></div>
+
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">nest_asyncio</span>
+<span class="n">nest_asyncio</span><span class="o">.</span><span class="n">apply</span><span class="p">()</span>
+</code></pre></div>
+
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic_ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic_ai.models.openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAIModel</span>
+
+<span class="n">sonar_model</span> <span class="o">=</span> <span class="n">OpenAIModel</span><span class="p">(</span>
+    <span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;sonar&#39;</span><span class="p">,</span>
+    <span class="n">base_url</span><span class="o">=</span><span class="s1">&#39;https://api.perplexity.ai&#39;</span><span class="p">,</span>
+    <span class="n">api_key</span><span class="o">=</span><span class="n">perplexity_api_key</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">sonar_model</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="s1">&#39;What is the capital of France?&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>The capital of France is **Paris**. It is the largest city in the country and serves as a major cultural, economic, and administrative hub[1][4][5].
+</code>
+</pre>
+</div>
+</div>
+<div class="output_area">
+<div class="output_text output_subarea output_execute_result">
+<pre>
+<code>'\nThe capital of France is **Paris**.\n'</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="s1">&#39;What is the weather like today in Helsinki, Finland?, Return the response with xml tags &lt;answer&gt; and &lt;citations&gt;, where citations includes a list with the citation_number, url, and timestamp for the retrieved citations&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</citations></answer></div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>&lt;answer&gt;
+Today in Helsinki, Finland, the weather is mostly cool with passing clouds. The temperature varies between 8°C and 11°C, and it feels a bit cooler due to the wind. The wind speed is moderate, around 6 to 11 km/h, with gusts possibly up to 14 km/h or higher[1][2]. The current conditions are generally overcast with clear patches, and the wind comes from directions like the southeast or east[2][3].
+
+&lt;/answer&gt;
+
+&lt;citations&gt;
+  &lt;citation&gt;
+    &lt;number&gt;1&lt;/number&gt;
+    &lt;url&gt;https://en.ilmatieteenlaitos.fi/local-weather&lt;/url&gt;
+    &lt;timestamp&gt;April 15, 2025, at 22:25&lt;/timestamp&gt;
+  &lt;/citation&gt;
+  &lt;citation&gt;
+    &lt;number&gt;2&lt;/number&gt;
+    &lt;url&gt;https://www.timeanddate.com/weather/finland/helsinki&lt;/url&gt;
+    &lt;timestamp&gt;April 16, 2025, at 10:20 pm&lt;/timestamp&gt;
+  &lt;/citation&gt;
+  &lt;citation&gt;
+    &lt;number&gt;3&lt;/number&gt;
+    &lt;url&gt;https://www.accuweather.com/en/fi/helsinki/133328/weather-forecast/133328&lt;/url&gt;
+    &lt;timestamp&gt;Not specified&lt;/timestamp&gt;
+  &lt;/citation&gt;
+&lt;/citations&gt;
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">PQ</span> <span class="o">=</span> <span class="s1">&#39;Are pericytes known to play a role in regulating blood pressure?, Return the response with xml tags &lt;answer&gt; and &lt;citations&gt;, where citations includes a list with the citation_number, url, and timestamp for the retrieved citations&#39;</span>
+</code></pre></div>
+
+</citations></answer></div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="n">PQ</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>&lt;answer&gt;Pericytes are involved in the regulation of blood pressure through several mechanisms. They can regulate vascular resistance by influencing blood flow through capillaries and arterioles. For instance, endothelial-derived C-type natriuretic peptide (CNP) acts on pericytes to modulate vascular tone, which helps in lowering peripheral vascular resistance and thus regulating blood pressure[3]. Additionally, disruption of the GC-B receptor in pericytes, which mediates the effects of CNP, leads to increased arterial blood pressure due to elevated peripheral resistance[3]. Pericytes also respond to changes in blood pressure and metabolic states, further influencing blood pressure regulation[2][5]. However, their direct role in systemic blood pressure control is complex and involves interactions with other vascular cells and signaling molecules[3][5]. &lt;/answer&gt;
+
+&lt;citations&gt;
+    &lt;citation&gt;
+        &lt;citation_number&gt;[3]&lt;/citation_number&gt;
+        &lt;url&gt;https://www.ahajournals.org/doi/10.1161/CIRCULATIONAHA.117.033383&lt;/url&gt;
+        &lt;timestamp&gt;2018-07-31&lt;/timestamp&gt;
+    &lt;/citation&gt;
+    &lt;citation&gt;
+        &lt;citation_number&gt;[2]&lt;/citation_number&gt;
+        &lt;url&gt;https://pmc.ncbi.nlm.nih.gov/articles/PMC1871727/&lt;/url&gt;
+        &lt;timestamp&gt;No specific timestamp available&lt;/timestamp&gt;
+    &lt;/citation&gt;
+    &lt;citation&gt;
+        &lt;citation_number&gt;[5]&lt;/citation_number&gt;
+        &lt;url&gt;https://www.ahajournals.org/doi/full/10.1161/JAHA.124.038457&lt;/url&gt;
+        &lt;timestamp&gt;2024-12-24&lt;/timestamp&gt;
+    &lt;/citation&gt;
+&lt;/citations&gt;
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">sonar_pro_model</span> <span class="o">=</span> <span class="n">OpenAIModel</span><span class="p">(</span>
+    <span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;sonar-pro&#39;</span><span class="p">,</span>
+    <span class="n">base_url</span><span class="o">=</span><span class="s1">&#39;https://api.perplexity.ai&#39;</span><span class="p">,</span>
+    <span class="n">api_key</span><span class="o">=</span><span class="n">perplexity_api_key</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">agent_pro</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">sonar_pro_model</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">agent_pro</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="s1">&#39;What is the capital of France?&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>The capital of France is Paris[1][3][4][6]. Paris is not only the political center of the country but also its largest city, economic hub, and main cultural capital. It is located in the north-central part of France along the Seine River and is renowned worldwide for its history, art, architecture, and influence as a global city[1][3][4].
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">agent_pro</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="n">PQ</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>&lt;answer&gt;
+Yes, pericytes are increasingly recognized as important regulators of blood pressure. These perivascular cells surround capillaries and small vessels, where their contractile activity can modulate capillary diameter, capillary blood flow, and peripheral vascular resistance—all of which contribute to the regulation of systemic blood pressure.
+
+Several lines of evidence support this role:
+- Pericytes contract or relax in response to various vasoactive signals, such as angiotensin II, endothelin-1, and vasoactive intestinal peptide, influencing local vessel tone and, consequently, blood pressure. The contraction of pericytes can elevate arterial blood pressure, whereas their relaxation can lower it[1][3].
+- Recent animal studies have shown that disrupting specific signaling pathways in pericytes (such as the CNP/GC-B/cGMP pathway) leads to sustained increases in arterial blood pressure, indicating that pericyte signaling is necessary for maintaining normal blood pressure and microvascular resistance[4].
+- Pericytes are sensitive to changes in intraluminal pressure and respond by contracting, which helps autoregulate capillary blood flow in response to fluctuations in systemic blood pressure. This myogenic response contributes to the stabilization of blood flow in tissues like the brain and retina, indirectly supporting blood pressure regulation[7].
+- Under conditions of chronic hypertension, pericytes exhibit phenotypic and metabolic changes that affect their function, and their interaction with other vascular cells is altered—highlighting their dynamic role in the vascular response to elevated blood pressure[5].
+
+In summary, pericytes actively participate in the regulation of blood pressure by controlling microvascular tone and responding to systemic and local vasoactive cues.
+&lt;/answer&gt;
+&lt;citations&gt;
+  &lt;citation&gt;
+    &lt;citation_number&gt;1&lt;/citation_number&gt;
+    &lt;url&gt;https://www.frontiersin.org/journals/cellular-neuroscience/articles/10.3389/fncel.2019.00519/full&lt;/url&gt;
+    &lt;timestamp&gt;2019-11-22&lt;/timestamp&gt;
+  &lt;/citation&gt;
+  &lt;citation&gt;
+    &lt;citation_number&gt;3&lt;/citation_number&gt;
+    &lt;url&gt;https://pmc.ncbi.nlm.nih.gov/articles/PMC1871727/&lt;/url&gt;
+    &lt;timestamp&gt;2007-05-01&lt;/timestamp&gt;
+  &lt;/citation&gt;
+  &lt;citation&gt;
+    &lt;citation_number&gt;4&lt;/citation_number&gt;
+    &lt;url&gt;https://www.ahajournals.org/doi/10.1161/CIRCULATIONAHA.117.033383&lt;/url&gt;
+    &lt;timestamp&gt;2018-07-31&lt;/timestamp&gt;
+  &lt;/citation&gt;
+  &lt;citation&gt;
+    &lt;citation_number&gt;5&lt;/citation_number&gt;
+    &lt;url&gt;https://www.ahajournals.org/doi/full/10.1161/JAHA.124.038457&lt;/url&gt;
+    &lt;timestamp&gt;2024-12-24&lt;/timestamp&gt;
+  &lt;/citation&gt;
+  &lt;citation&gt;
+    &lt;citation_number&gt;7&lt;/citation_number&gt;
+    &lt;url&gt;https://www.pnas.org/doi/10.1073/pnas.2216421120&lt;/url&gt;
+    &lt;timestamp&gt;2023-02-21&lt;/timestamp&gt;
+  &lt;/citation&gt;
+&lt;/citations&gt;
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">agent_pro</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="s2">&quot;what is pulmonary hypertension?&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>Pulmonary hypertension (PH) is a condition characterized by abnormally high blood pressure in the arteries that supply the lungs, known as the pulmonary arteries[4][3][6]. Unlike systemic hypertension, which affects the arteries throughout the body, pulmonary hypertension specifically targets the vessels in the lung circulation.
+
+## What Happens in Pulmonary Hypertension?
+
+In PH, the walls of the pulmonary arteries become thickened, stiff, narrowed, or blocked. This impedes blood flow through the lungs, causing pressure in these arteries to rise above normal levels[4][2][3]. As a result, the right side of the heart must work harder to push blood through these narrowed vessels, which can eventually cause it to weaken and lead to right-sided heart failure (cor pulmonale)[3][4][7].
+
+### Diagnostic Thresholds
+
+- Historically, PH has been defined as a mean pulmonary artery pressure (mPAP) of 25 mm Hg or higher at rest.
+- Recent guidelines have lowered the threshold to mPAP greater than 20 mm Hg, as measured by right heart catheterization[9][5].
+
+## Main Causes
+
+Pulmonary hypertension has multiple causes and is classified into several groups:
+
+- **Pulmonary Arterial Hypertension (PAH):** Can be idiopathic (unknown cause), heritable, associated with connective tissue diseases, or drug-induced[2][5].
+- **Left-sided Heart Disease:** The most common cause, includes heart failure or valve disorders[2][4].
+- **Lung Diseases or Hypoxia:** Such as chronic obstructive pulmonary disease (COPD), pulmonary fibrosis, sleep apnea, or chronic exposure to high altitude[2][4][6].
+- **Chronic Blood Clots:** Such as chronic thromboembolic pulmonary hypertension (CTEPH)[2].
+- **Other Conditions:** Blood disorders, metabolic diseases, and other rare causes[2][7].
+
+## Symptoms
+
+PH symptoms are often nonspecific and may include:
+
+- Shortness of breath, especially during activities
+- Fatigue
+- Chest pain or pressure
+- Dizziness or fainting spells
+- Heart palpitations (racing or pounding heart)
+- Swelling in the legs, ankles, abdomen, or feet (edema)[4][6][7][3]
+
+Symptoms typically worsen over time and may limit physical activity.
+
+## Why Is Pulmonary Hypertension Serious?
+
+Pulmonary hypertension can lead to progressive damage of the right side of the heart. If untreated, this increased workload can result in heart failure and ultimately be life-threatening[3][4][7].
+
+## Diagnosis and Treatment
+
+Diagnosing PH can be challenging, as its symptoms mimic other heart and lung conditions. Evaluation usually involves:
+
+- Physical exam
+- Blood tests
+- Echocardiogram (heart ultrasound)
+- Right heart catheterization (to directly measure pulmonary artery pressures)
+- Imaging studies such as chest X-ray or CT scan[4][6][8]
+
+While there is no cure for most types of pulmonary hypertension, treatment can help manage symptoms and slow progression. Treatment options may include medications to relax blood vessels, reduce fluid retention, control heart rhythm, or improve oxygenation, as well as lifestyle modifications and, in severe cases, lung or heart-lung transplantation[4][6][7][8].
+
+## In Summary
+
+Pulmonary hypertension is high blood pressure in the arteries supplying the lungs, which makes the right side of the heart work harder and can lead to serious heart complications. It is a progressive and potentially fatal disease, but with early diagnosis and appropriate management, people with PH can live longer and experience improved quality of life[4][3][7].
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">agent_pro</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">sonar_pro_model</span><span class="p">,</span>
+                  <span class="n">system_prompt</span><span class="o">=</span><span class="s2">&quot;Return the response with xml tags &lt;answer&gt; and &lt;citations&gt;, where citations includes a list with the citation_number, url, and timestamp for the retrieved citations&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+</citations></answer></div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">agent_pro</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="s2">&quot;what is pulmonary hypertension?&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>&lt;answer&gt;
+Pulmonary hypertension (PH) is a serious medical condition characterized by abnormally high blood pressure in the arteries that supply the lungs (pulmonary arteries)[2][3][4]. Normally, the pressure in these vessels is low, but in PH, the arteries become narrowed, thickened, or stiff, making it harder for blood to flow through the lungs. As a result, the right side of the heart must work much harder to pump blood, which can eventually lead to right-sided heart failure[2][3][4][6].
+
+The updated diagnostic threshold for pulmonary hypertension is a mean pulmonary artery pressure (mPAP) greater than 20 mm Hg at rest, measured by right heart catheterization[9]. PH is not a single disease but a group of conditions classified by their underlying causes—these include left heart disease, lung diseases, blood clots, and other systemic or genetic conditions[2][5][6][7].
+
+**Common symptoms of pulmonary hypertension include:**
+- Shortness of breath (especially during activity)
+- Fatigue or weakness
+- Chest pain or pressure
+- Dizziness or fainting spells
+- Swelling in the legs, ankles, abdomen, or feet
+- Heart palpitations (a racing or pounding heartbeat)[3][4][6][7]
+
+These symptoms are often nonspecific and can be mistaken for other heart or lung problems, causing delays in diagnosis[6][7].
+
+**Causes and Risk Factors:**
+PH can develop for many reasons. Major causes include:
+- Chronic heart or lung diseases (such as heart failure, COPD, or interstitial lung diseases)
+- Blood clots in the lungs (pulmonary embolism)
+- Connective tissue diseases (such as scleroderma or lupus)
+- Liver disease, certain infections, and some medications
+- In some cases, the cause remains unknown (idiopathic pulmonary arterial hypertension)[2][5][6][8][7]
+
+It can affect people of any age but is more common in adults and in individuals with risk factors such as a family history, being overweight, smoking, or certain genetic or environmental exposures[6][7].
+
+**Diagnosis and Treatment:**
+Diagnosis involves specialized tests, including echocardiograms, right heart catheterization, blood tests, and lung imaging, to determine the cause and severity[4][6][8].
+
+While pulmonary hypertension cannot be cured, its symptoms and progression can often be managed with treatment. This may include medications to relax and widen blood vessels, oxygen therapy, diuretics, anticoagulants, and, in severe cases, lung transplantation[4][6][7]. The goal is to reduce symptoms, improve quality of life, and slow disease progression.
+
+**Outlook:**
+PH is a progressive condition that can be life-threatening if untreated, but outcomes improve with early diagnosis and appropriate therapy[3][4][6].
+&lt;/answer&gt;
+&lt;citations&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;2&lt;/citation_number&gt;
+    &lt;url&gt;https://www.mayoclinic.org/diseases-conditions/pulmonary-hypertension/symptoms-causes/syc-20350697&lt;/url&gt;
+    &lt;timestamp&gt;2025-04-10&lt;/timestamp&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;3&lt;/citation_number&gt;
+    &lt;url&gt;https://my.clevelandclinic.org/health/diseases/6530-pulmonary-hypertension-ph&lt;/url&gt;
+    &lt;timestamp/&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;4&lt;/citation_number&gt;
+    &lt;url&gt;https://www.nhs.uk/conditions/pulmonary-hypertension/&lt;/url&gt;
+    &lt;timestamp/&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;5&lt;/citation_number&gt;
+    &lt;url&gt;https://phassociation.org/patients/aboutph/&lt;/url&gt;
+    &lt;timestamp&gt;2022-08-11&lt;/timestamp&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;6&lt;/citation_number&gt;
+    &lt;url&gt;https://medlineplus.gov/pulmonaryhypertension.html&lt;/url&gt;
+    &lt;timestamp&gt;2024-06-26&lt;/timestamp&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;7&lt;/citation_number&gt;
+    &lt;url&gt;https://www.cdc.gov/heart-disease/about/pulmonary-hypertension.html&lt;/url&gt;
+    &lt;timestamp&gt;2024-05-15&lt;/timestamp&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;8&lt;/citation_number&gt;
+    &lt;url&gt;https://www.pennmedicine.org/for-patients-and-visitors/patient-information/conditions-treated-a-to-z/pulmonary-hypertension&lt;/url&gt;
+    &lt;timestamp/&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;9&lt;/citation_number&gt;
+    &lt;url&gt;https://www.ahajournals.org/doi/10.1161/JAHA.122.029024&lt;/url&gt;
+    &lt;timestamp&gt;2023-04-07&lt;/timestamp&gt;
+  &lt;/item&gt;
+&lt;/citations&gt;
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">agent_pro</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="s2">&quot;Are pericytes known to play a role in regulating blood pressure?&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>&lt;answer&gt;
+## Pericytes and Blood Pressure Regulation
+
+**Summary**  
+Pericytes are now recognized as key regulators of microcirculatory blood flow and systemic blood pressure. These mural cells, found enveloping capillaries and small vessels, modulate vascular tone through contractile properties and paracrine interactions with endothelial cells. Several lines of evidence—including animal genetic models and mechanistic studies—demonstrate a direct role for pericytes in both acute and chronic regulation of blood pressure.
+
+**Mechanisms of Pericyte-Mediated Blood Pressure Regulation**
+
+- **Contractility and Capillary Tone**  
+  Pericytes express contractile proteins (such as α-smooth muscle actin, myosin) and respond to vasoactive signals (e.g., endothelin-1, angiotensin II) by contracting or relaxing. This alters capillary diameter, impacting microvascular resistance and, consequently, systemic blood pressure[1][3][6][9]. Pericytes can constrict or dilate in response to pressure changes, helping maintain vascular tone and perfusion autoregulation, especially in highly perfused organs like the brain and retina[5].
+
+- **Interaction with Vasoactive Pathways**  
+  Pericytes respond to both vasoconstrictors (e.g., endothelin-1, angiotensin II) and vasodilators (e.g., C-type natriuretic peptide, nitric oxide), integrating local paracrine signals to finely tune vascular resistance[1][3][4][7]. For example, C-type natriuretic peptide (CNP)/guanylyl cyclase B (GC-B)/cGMP signaling in pericytes acts as a powerful vasodilatory pathway. Loss of this pathway in pericytes leads to chronic hypertension in mice without affecting renal function, firmly linking pericyte signaling to systemic blood pressure control[4][7].
+
+- **Autoregulation in Response to Pressure**  
+  Recent studies show that pericytes can directly sense increases in intraluminal pressure, resulting in calcium influx and contraction—albeit with slower kinetics compared to arteriolar smooth muscle cells. This intrinsic myogenic response suggests that pericytes participate in pressure-sensitive autoregulation of microvascular tone, influencing overall peripheral vascular resistance[5][8].
+
+- **Impact on Peripheral Resistance and Systemic Blood Pressure**  
+  Genetic models with pericyte-specific deletion of GC-B (the CNP receptor) develop mild but sustained hypertension due to increased peripheral resistance, despite intact renal excretory function. This directly demonstrates that pericyte dysfunction can cause elevated blood pressure independently of the kidney, emphasizing their role in chronic blood pressure regulation[4][7].
+
+**Supporting Evidence from Experimental and Review Literature**
+
+- Pericyte contractility is influenced by high or low oxygen, CO₂ levels, and various neurotransmitters, mirroring mechanisms seen in smooth muscle regulation of arterioles[1][3][6].
+- In vivo and in vitro imaging and electrophysiological studies confirm that pericytes on capillaries and postarteriolar transition zones dynamically regulate blood flow and resistance in response to physiological stimuli[2][5].
+- Human and animal data show that loss or dysfunction of pericytes leads to aberrant vessel diameter, impaired vascular homeostasis, and increased risk of hypertension or edema[3][4].
+
+**Distinguishing Pericyte Roles from Smooth Muscle Cells**
+
+While both pericytes and vascular smooth muscle cells (VSMCs) influence blood flow, pericytes primarily regulate capillary networks and small pre-capillary arterioles, which are crucial determinants of total peripheral resistance and hence systemic blood pressure. VSMCs, in contrast, dominate the regulation of larger vessels[3][5].
+
+---
+
+## Key Points
+
+- **Pericytes actively regulate capillary blood flow and microvascular resistance through contractile responses and paracrine signaling.**
+- **Disruption of pericyte signaling pathways, especially those involving natriuretic peptides (e.g., CNP), results in sustained elevation of arterial blood pressure in animal models.**
+- **Pericytes integrate mechanical, metabolic, and neurohumoral cues to maintain circulatory homeostasis, with their dysfunction contributing to hypertension and vascular disease.**
+
+In summary, pericytes are established contributors to blood pressure regulation through their integration of contractile, metabolic, and signaling roles within the microvascular network[1][3][4][5][7].
+&lt;/answer&gt;
+&lt;citations&gt;
+[1] https://www.frontiersin.org/journals/cellular-neuroscience/articles/10.3389/fncel.2019.00519/full, 2025-04-16T19:32:47Z
+[3] https://pmc.ncbi.nlm.nih.gov/articles/PMC1871727/, 2025-04-16T19:32:51Z
+[4] https://www.ahajournals.org/doi/10.1161/CIRCULATIONAHA.117.033383, 2025-04-16T19:32:54Z
+[5] https://www.pnas.org/doi/10.1073/pnas.2216421120, 2025-04-16T19:32:56Z
+[6] https://www.sigmaaldrich.com/US/en/technical-documents/technical-article/cell-culture-and-cell-culture-analysis/primary-cell-culture/vascular-pericytes-faqs, 2025-04-16T19:32:59Z
+[7] https://www.ahajournals.org/doi/10.1161/CIRCULATIONAHA.117.033383?doi=10.1161%2FCIRCULATIONAHA.117.033383, 2025-04-16T19:33:04Z
+[8] https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2021.719701/full, 2025-04-16T19:33:07Z
+[9] https://pmc.ncbi.nlm.nih.gov/articles/PMC10486323/, 2025-04-16T19:33:10Z
+[2] https://pmc.ncbi.nlm.nih.gov/articles/PMC10280497/, 2025-04-16T19:32:49Z
+&lt;/citations&gt;
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">sonar_dr_model</span> <span class="o">=</span> <span class="n">OpenAIModel</span><span class="p">(</span>
+    <span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;sonar-deep-research&#39;</span><span class="p">,</span>
+    <span class="n">base_url</span><span class="o">=</span><span class="s1">&#39;https://api.perplexity.ai&#39;</span><span class="p">,</span>
+    <span class="n">api_key</span><span class="o">=</span><span class="n">perplexity_api_key</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">agent_dr</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">sonar_dr_model</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">agent_pro</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="s1">&#39;What is the capital of France?&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>
+<code>/opt/homebrew/Cellar/python@3.11/3.11.9/Frameworks/Python.framework/Versions/3.11/lib/python3.11/functools.py:50: RuntimeWarning: coroutine 'Agent.run' was never awaited
+  for attr in assigned:
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+</code>
+</pre>
+</div>
+</div>
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>&lt;answer&gt;
+The capital of France is Paris. Located in the north-central part of the country along the Seine River, Paris serves as the political, economic, and cultural heart of France[1][4][6]. It is home to the national government, with key institutions such as the Élysée Palace (the President's official residence), the Hôtel Matignon (Prime Minister's seat), and the French Parliament all situated within the city[1]. Paris also stands as the country's largest city and is often referred to as the "City of Light" due to its significant historical, artistic, and intellectual influence worldwide[3][6]. Renowned for landmarks like the Eiffel Tower, the Louvre Museum, and Notre-Dame Cathedral, Paris continues to embody France's national identity and global prestige[7].
+&lt;/answer&gt;
+&lt;citations&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;1&lt;/citation_number&gt;
+    &lt;url&gt;https://en.wikipedia.org/wiki/Paris&lt;/url&gt;
+    &lt;timestamp&gt;2025-04-16T21:10:03Z&lt;/timestamp&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;4&lt;/citation_number&gt;
+    &lt;url&gt;https://en.wikipedia.org/wiki/France&lt;/url&gt;
+    &lt;timestamp&gt;2025-04-16T21:10:03Z&lt;/timestamp&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;6&lt;/citation_number&gt;
+    &lt;url&gt;https://www.britannica.com/place/France&lt;/url&gt;
+    &lt;timestamp&gt;2025-04-16T21:10:03Z&lt;/timestamp&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;3&lt;/citation_number&gt;
+    &lt;url&gt;https://www.britannica.com/place/Paris&lt;/url&gt;
+    &lt;timestamp&gt;2025-04-16T21:10:03Z&lt;/timestamp&gt;
+  &lt;/item&gt;
+  &lt;item&gt;
+    &lt;citation_number&gt;7&lt;/citation_number&gt;
+    &lt;url&gt;https://www.iroamly.com/france-travel/what-is-the-capital-of-france.html&lt;/url&gt;
+    &lt;timestamp&gt;2025-04-16T21:10:03Z&lt;/timestamp&gt;
+  &lt;/item&gt;
+&lt;/citations&gt;
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">agent_dr</span><span class="o">.</span><span class="n">run_sync</span><span class="p">(</span><span class="s2">&quot;Are pericytes known to play a role in regulating blood pressure?&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>&lt;think&gt;
+Okay, I need to figure out whether pericytes play a role in regulating blood pressure. Let me start by recalling what pericytes are. They're these cells that wrap around the endothelial cells of capillaries and venules in various tissues, including the brain. I remember they're part of the neurovascular unit and have roles in maintaining the blood-brain barrier, angiogenesis, and maybe blood flow regulation. But do they directly affect blood pressure?
+
+Looking at the search results provided. Let me go through each one to gather relevant info.
+
+From result [1], it's a review on pericytes in cerebrovascular diseases. It mentions that pericytes can regulate blood pressure and coagulation. Specifically, angiotensin II from endothelial cells binds to pericytes, causing arteriole contraction and increased blood pressure. Conversely, vasoactive intestinal peptide has a vasodilating effect. Also, endothelin-1 on pericytes is a vasoconstrictor. So this source directly states pericytes are involved in blood pressure regulation through these pathways.
+
+Result [2] discusses endothelial C-type natriuretic peptide (CNP) acting on pericytes. Deletion of the GC-B receptor in pericytes led to increased blood pressure in mice. The study shows that CNP/GC-B/cGMP signaling in pericytes moderates peripheral vascular resistance and BP. This is a direct link between pericyte function and systemic blood pressure regulation.
+
+Result [3] looks at pressure-induced contractions in pericytes. It compares arteriolar SMCs and pericytes, finding that pericytes in different regions contract in response to pressure changes, affecting blood flow. Even though the focus is on blood flow regulation, this could tie into blood pressure since vascular resistance is a component of BP. The study shows pericytes' role in autoregulation, which impacts BP.
+
+Result [4] covers pericyte mechanics. It mentions pericytes can contract to regulate vessel diameter, affecting blood flow and possibly resistance. By changing vessel stiffness or directly constricting, pericytes influence local blood flow dynamics, which would contribute to blood pressure regulation, especially in the microvasculature.
+
+Result [5] is another part of the same study as [2], emphasizing that pericyte GC-B deletion increases BP without affecting renal function. This strengthens the argument that pericytes have a direct role in BP regulation independent of kidney-related mechanisms.
+
+Result [6] and [7] discuss hypertensive models and pericyte response. In hypertension, pericytes undergo phenotypic and metabolic changes. They shift to glycolytic metabolism and show altered marker expression (PDGFRβ, NG2, CD13). These changes might be adaptive or maladaptive responses to high BP, indicating pericytes are both affected by and possibly contribute to maintaining or exacerbating hypertension through vascular remodeling and impaired mitochondrial function.
+
+Result [8] is similar to [7], noting pericytes' role in hypertensive vascular remodeling, again suggesting their involvement in blood pressure-related pathologies.
+
+Putting this together: pericytes regulate blood pressure through various mechanisms. They respond to vasoactive substances (angiotensin II, CNP, endothelin), modulate vascular resistance via contraction, and their dysfunction (as in GC-B KO models) leads to hypertension. In chronic hypertension, pericytes undergo metabolic shifts and phenotypic changes, contributing to vascular pathology. So yes, pericytes are actively involved in blood pressure regulation at the microvascular level, affecting systemic BP through peripheral resistance. The evidence from multiple studies, including genetic models and physiological experiments, supports their role.
+&lt;/think&gt;
+
+# The Role of Pericytes in Blood Pressure Regulation: Mechanisms and Implications  
+
+Pericytes, specialized mural cells embedded within the microvasculature, have emerged as critical regulators of vascular homeostasis and hemodynamics. This report synthesizes evidence from molecular, cellular, and systemic studies to elucidate the multifaceted role of pericytes in blood pressure (BP) regulation. By integrating findings on contractile signaling pathways, neurovascular coupling, and metabolic adaptations, this analysis establishes pericytes as key players in both physiological BP maintenance and pathological hypertension.  
+
+---
+
+## Pericyte-Mediated Vasoconstriction and Vasodilation  
+
+### Contractile Mechanisms in Pericytes  
+Pericytes regulate capillary and arteriolar tone through dynamic interactions with endothelial cells and smooth muscle cells (SMCs). Their contractile apparatus includes α-smooth muscle actin (α-SMA) and troponin, enabling fine-tuned adjustments to luminal diameter[1]. Pressure-induced depolarization triggers calcium (Ca²⁺) influx via voltage-dependent Ca²⁺ channels (VDCCs) in arteriole-proximate pericytes, leading to rapid contraction and increased vascular resistance[3]. In contrast, distal capillary pericytes rely on VDCC-independent pathways, such as store-operated Ca²⁺ entry, enabling slower but sustained contractile responses[3]. This spatial heterogeneity allows pericytes to modulate blood flow across different segments of the microvascular network.  
+
+### Vasoactive Signaling Pathways  
+Endothelial-derived mediators, such as endothelin-1 (ET-1) and C-type natriuretic peptide (CNP), directly influence pericyte tone. ET-1 binds to endothelin receptors on pericytes, inducing vasoconstriction and elevating peripheral resistance[1][4]. Conversely, CNP activation of guanylyl cyclase-B (GC-B) receptors stimulates cyclic guanosine monophosphate (cGMP) production, counteracting ET-1–induced contractions and promoting vasodilation[2][5]. Genetic ablation of GC-B in pericytes results in chronic hypertension (Δsystolic BP ≈12–15 mmHg), underscoring their role in buffering vasoconstrictive signals[2][5].  
+
+---
+
+## Pericytes in Systemic Blood Pressure Regulation  
+
+### Peripheral Resistance and Microvascular Tone  
+Pericytes contribute to systemic BP by modulating microvascular resistance. In vivo studies demonstrate that pericytes in transition zones (arteriole-capillary junctions) dynamically adjust lumen diameter in response to intraluminal pressure changes[3][4]. For example, increasing pressure from 20 to 80 mmHg depolarizes pericyte membrane potential (≈−40 mV to ≈−30 mV), activating VDCCs and triggering Ca²⁺-dependent contraction[3]. This autoregulatory mechanism stabilizes capillary hydrostatic pressure, preventing tissue damage during BP fluctuations.  
+
+### Renin-Angiotensin System Interactions  
+Pericytes express angiotensin II receptors, linking them to the renin-angiotensin system (RAS). Angiotensin II binding induces pericyte contraction, amplifying systemic vasoconstriction and elevating BP[1][6]. Pharmacological inhibition of pericyte angiotensin receptors reduces hypertension in rodent models, suggesting a therapeutic target for RAS-driven hypertension[6].  
+
+---
+
+## Metabolic Reprogramming in Hypertensive Pericytes  
+
+### Glycolytic Shift and Mitochondrial Dysfunction  
+Chronic hypertension induces metabolic adaptations in pericytes, shifting energy production from oxidative phosphorylation to glycolysis. In spontaneously hypertensive stroke-prone rats (SHRSP), pericytes exhibit a 49% reliance on glycolytic ATP synthesis compared to 11% in normotensive controls[6][7]. This metabolic inflexibility impairs mitochondrial membrane potential and reduces ATP reserves, compromising their ability to regulate vascular tone during stress[6][8].  
+
+### Phenotypic Transformation  
+Hypertensive pericytes undergo marker-specific remodeling, characterized by decreased platelet-derived growth factor receptor β (PDGFRβ) and increased neuroglial antigen 2 (NG2) and CD13 expression[6][8]. This phenotypic shift correlates with enhanced inflammatory signaling and blood-brain barrier (BBB) leakage, exacerbating cerebrovascular damage in hypertension[6][7].  
+
+---
+
+## Therapeutic Targeting of Pericytes  
+
+### CNP/GC-B/cGMP Pathway Modulation  
+Enhancing CNP signaling in pericytes represents a promising antihypertensive strategy. CNP administration in GC-B–intact mice attenuates ET-1–induced contractions and restores normotension[2][5]. Small-molecule GC-B agonists are under investigation to amplify cGMP signaling and counteract pericyte hypercontractility in hypertension.  
+
+### Extracellular Vesicle-Based Interventions  
+Circulating extracellular vesicles (EVs) from normotensive rodents reverse glycolytic dominance in hypertensive pericytes, restoring mitochondrial function[6][8]. EV cargo analysis identifies microRNAs (e.g., miR-132 and miR-146a) that suppress inflammatory pathways, offering a novel approach to mitigate hypertensive vascular remodeling[6][8].  
+
+---
+
+## Conclusion  
+
+Pericytes are integral to BP regulation through their dual roles as dynamic contractile cells and metabolic sensors. Their ability to modulate microvascular resistance, respond to vasoactive signals, and adapt to hemodynamic stress positions them as central mediators of both physiological and pathological BP states. Future therapies targeting pericyte-specific pathways—such as CNP/GC-B activation or EV-mediated metabolic reprogramming—hold promise for treating hypertension and its cerebrovascular complications. Advances in single-cell omics and in vivo imaging will further unravel the spatiotemporal dynamics of pericyte biology in BP regulation.
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 

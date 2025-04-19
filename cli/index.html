@@ -1186,6 +1186,29 @@ Each agent can be run in either direct query mode or UI mode:</p>
   --version         Show the version and exit.
   --help            Show this message and exit.
 </code></pre></div>
+<h2 id="agent">agent</h2>
+<p>NEW: Generic agent runner.</p>
+<p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main agent [OPTIONS] [QUERY]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -a, --agent TEXT              The agent to use (if non-default).
+  -m, --model TEXT              The model to use for the agent.
+  --use-cborg / --no-use-cborg  Use CBORG as a model proxy (LBNL account
+                                required).  [default: no-use-cborg]
+  --share / --no-share          Share the agent GradIO UI via URL.  [default:
+                                no-share]
+  -p, --server-port INTEGER     The port to run the UI server on.  [default:
+                                7860]
+  -w, --workdir TEXT            The working directory for the agent.
+                                [default: workdir]
+  --ui / --no-ui                Start the agent in UI mode instead of direct
+                                query mode.  [default: no-ui]
+  --run-evals / --no-run-evals  Run the agent in evaluation mode.  [default:
+                                no-run-evals]
+  --help                        Show this message and exit.
+</code></pre></div>
 <h2 id="amigo">amigo</h2>
 <p>Start the AmiGO Agent for Gene Ontology data exploration.</p>
 <p>The AmiGO Agent provides access to the Gene Ontology (GO) and gene 
@@ -1417,16 +1440,18 @@ particularly for transcription factors.</p>
 <div class="highlight"><pre><span></span><code>main goann [OPTIONS] [QUERY]...
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code>  -m, --model TEXT           The model to use for the agent.
-  -w, --workdir TEXT         The working directory for the agent.  [default:
-                             workdir]
-  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
-                             share]
-  -p, --server-port INTEGER  The port to run the UI server on.  [default:
-                             7860]
-  --ui / --no-ui             Start the agent in UI mode instead of direct
-                             query mode.  [default: no-ui]
-  --help                     Show this message and exit.
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT              The model to use for the agent.
+  --use-cborg / --no-use-cborg  Use CBORG as a model proxy (LBNL account
+                                required).  [default: no-use-cborg]
+  -w, --workdir TEXT            The working directory for the agent.
+                                [default: workdir]
+  --share / --no-share          Share the agent GradIO UI via URL.  [default:
+                                no-share]
+  -p, --server-port INTEGER     The port to run the UI server on.  [default:
+                                7860]
+  --ui / --no-ui                Start the agent in UI mode instead of direct
+                                query mode.  [default: no-ui]
+  --help                        Show this message and exit.
 </code></pre></div>
 <h2 id="gocam">gocam</h2>
 <p>Start the GO-CAM Agent for gene ontology causal activity models.</p>
@@ -1438,15 +1463,17 @@ relationships. </p>
 <div class="highlight"><pre><span></span><code>main gocam [OPTIONS] [QUERY]...
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code>  -a, --agent TEXT           The agent to use (if non-default).
-  -m, --model TEXT           The model to use for the agent.
-  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
-                             share]
-  -p, --server-port INTEGER  The port to run the UI server on.  [default:
-                             7860]
-  --ui / --no-ui             Start the agent in UI mode instead of direct
-                             query mode.  [default: no-ui]
-  --help                     Show this message and exit.
+<div class="highlight"><pre><span></span><code>  -a, --agent TEXT              The agent to use (if non-default).
+  -m, --model TEXT              The model to use for the agent.
+  --use-cborg / --no-use-cborg  Use CBORG as a model proxy (LBNL account
+                                required).  [default: no-use-cborg]
+  --share / --no-share          Share the agent GradIO UI via URL.  [default:
+                                no-share]
+  -p, --server-port INTEGER     The port to run the UI server on.  [default:
+                                7860]
+  --ui / --no-ui                Start the agent in UI mode instead of direct
+                                query mode.  [default: no-ui]
+  --help                        Show this message and exit.
 </code></pre></div>
 <h2 id="linkml">linkml</h2>
 <p>Start the LinkML Agent for data modeling and schema validation.</p>
