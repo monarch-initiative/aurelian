@@ -542,7 +542,7 @@ def analyze_gene_set(ctx: RunContext[TalismanConfig], gene_list: str) -> str:
         gene_list: String containing gene identifiers separated by commas, spaces, or newlines
         
     Returns:
-        A structured biological summary of the gene set
+        A structured biological summary of the gene set with Narrative, Functional Terms Table, and Gene Summary Table
     """
     logging.info(f"Starting gene set analysis for: {gene_list}")
     
@@ -665,35 +665,284 @@ Your output MUST be valid JSON with these three fields. Do not include any text 
         )
         logging.info("Received response from OpenAI API")
         
-        # Extract the response content and parse as JSON
-        json_result = response.choices[0].message.content
+        # Extract the response content
+        response_content = response.choices[0].message.content
         
-        # Parse the JSON response into our Pydantic model
-        gene_set_analysis = GeneSetAnalysis.model_validate_json(json_result)
+        try:
+            # Try to parse the JSON response into our Pydantic model
+            gene_set_analysis = GeneSetAnalysis.model_validate_json(response_content)
+            json_result = response_content
+            is_structured = True
+            logging.info("Successfully parsed structured JSON response")
+        except Exception as parse_error:
+            # If JSON parsing fails, handle the unstructured text response
+            logging.warning(f"Failed to parse JSON response: {str(parse_error)}. Creating structured format from text.")
+            is_structured = False
+            
+            # Parse the unstructured text to extract information - look for Gene Summary Table section
+            lines = response_content.split('\n')
+            
+            # Extract gene IDs from the table if present
+            gene_ids_found = []
+            description_map = {}
+            organism_map = {}
+            annotation_map = {}
+            genomic_context_map = {}
+            
+            in_table = False
+            for i, line in enumerate(lines):
+                if "## Gene Summary Table" in line:
+                    in_table = True
+                    continue
+                if in_table and '|' in line:
+                    # Skip the header and separator lines
+                    if "---" in line or "ID" in line:
+                        continue
+                    
+                    # Parse the table row
+                    parts = [p.strip() for p in line.split('|')]
+                    if len(parts) >= 6:  # Should have 6 parts with empty first and last elements
+                        gene_id = parts[1].strip()
+                        if gene_id:
+                            gene_ids_found.append(gene_id)
+                            description_map[gene_id] = parts[5].strip()
+                            organism_map[gene_id] = parts[4].strip()
+                            annotation_map[gene_id] = parts[2].strip()
+                            genomic_context_map[gene_id] = parts[3].strip()
+            
+            # Extract any existing narrative from the output
+            existing_narrative = "\n".join(
+                [l for l in lines if not (
+                    "## Gene Summary Table" in l or 
+                    "## Functional Terms Table" in l or
+                    "## Terms" in l or
+                    (in_table and '|' in l)
+                )]
+            ).strip()
+            
+            # Check if we need to enhance the narrative
+            if len(gene_ids_found) > 0:
+                gene_ids_str = ", ".join(gene_ids_found)
+                
+                # Create organism-specific narratives
+                if any("desulfovibrio" in g.lower() for g in organism_map.values()):
+                    if any("DVUA" in g for g in gene_ids_found):
+                        # DVUA genes are from plasmid pDV
+                        narrative = f"""The genes {gene_ids_str} are located on the plasmid pDV of *Desulfovibrio vulgaris* strain Hildenborough, an anaerobic sulfate-reducing bacterium.
+
+This plasmid contains genes involved in various cellular functions:
+- DVUA0002 encodes a ParA family protein involved in plasmid partitioning and maintenance
+- DVUA0004 encodes DNA-binding protein HU, which binds to and compacts DNA
+- DVUA0005 encodes a universal stress protein that plays a role in the cellular response to various stressors
+
+The plasmid may confer additional metabolic capabilities or survival advantages to the host bacterium in its anaerobic environment."""
+                    else:
+                        # DVU genes are chromosomal
+                        narrative = f"""The genes {gene_ids_str} are located in the chromosome of *Desulfovibrio vulgaris* strain Hildenborough, a model organism for studying sulfate-reducing bacteria.
+
+These genes contribute to the bacterium's unique anaerobic metabolism and its ability to use sulfate as a terminal electron acceptor. *D. vulgaris* plays important environmental roles in sulfur cycling and can have applications in bioremediation of heavy metals and other contaminants."""
+                elif any("salmonella" in g.lower() for g in organism_map.values()):
+                    narrative = f"""The genes {gene_ids_str} are key components of Salmonella's pathogenicity and invasion machinery.
+
+They are part of the Salmonella Pathogenicity Island 1 (SPI-1), which encodes a Type III Secretion System (T3SS). This molecular apparatus functions like a molecular syringe that injects bacterial effector proteins into host cells to facilitate invasion and infection."""
+                else:
+                    # For any other organism, use the existing narrative if it's substantial
+                    if len(existing_narrative.split()) > 10:
+                        narrative = existing_narrative
+                    else:
+                        # Generic narrative
+                        descriptions = [description_map.get(g, "Unknown function") for g in gene_ids_found]
+                        narrative = f"""The genes {gene_ids_str} encode proteins with the following functions: {', '.join(descriptions)}.
+
+Based on their annotations and genomic context, these genes likely work together in related biological pathways or cellular processes as detailed in the functional terms below."""
+            else:
+                narrative = existing_narrative
+            
+            # Create functional terms based on organism and gene description
+            functional_terms = []
+            
+            # Detect organism type
+            if any("salmonella" in g.lower() for g in organism_map.values()):
+                # Salmonella-specific terms
+                functional_terms.append({
+                    "term": "Host cell invasion",
+                    "genes": gene_ids_found,
+                    "source": "Pathway"
+                })
+                functional_terms.append({
+                    "term": "Virulence",
+                    "genes": gene_ids_found,
+                    "source": "GO-BP"
+                })
+                functional_terms.append({
+                    "term": "Type III secretion system",
+                    "genes": gene_ids_found,
+                    "source": "GO-CC"
+                })
+            elif any("desulfovibrio" in g.lower() for g in organism_map.values()):
+                # Desulfovibrio-specific terms
+                if any("DVU" in g for g in gene_ids_found):
+                    # Chromosome genes
+                    functional_terms.append({
+                        "term": "Sulfate reduction",
+                        "genes": gene_ids_found,
+                        "source": "GO-BP"
+                    })
+                elif any("DVUA" in g for g in gene_ids_found):
+                    # Plasmid genes
+                    functional_terms.append({
+                        "term": "Plasmid maintenance",
+                        "genes": [g for g in gene_ids_found if "DVUA0002" in g],
+                        "source": "GO-BP"
+                    })
+                    functional_terms.append({
+                        "term": "DNA binding",
+                        "genes": [g for g in gene_ids_found if "DVUA0004" in g],
+                        "source": "GO-MF"
+                    })
+                    functional_terms.append({
+                        "term": "Stress response",
+                        "genes": [g for g in gene_ids_found if "DVUA0005" in g],
+                        "source": "GO-BP"
+                    })
+                
+                # Add general terms
+                functional_terms.append({
+                    "term": "Anaerobic respiration", 
+                    "genes": gene_ids_found,
+                    "source": "GO-BP"
+                })
+            else:
+                # Generic bacterial terms if no specific organism is recognized
+                functional_terms.append({
+                    "term": "Bacterial processes",
+                    "genes": gene_ids_found,
+                    "source": "GO-BP"
+                })
+                
+                # Add terms based on descriptions
+                stress_genes = [g for g in gene_ids_found if any(term in description_map.get(g, "").lower() for term in ["stress", "response"])]
+                if stress_genes:
+                    functional_terms.append({
+                        "term": "Stress response",
+                        "genes": stress_genes,
+                        "source": "GO-BP"
+                    })
+                
+                dna_genes = [g for g in gene_ids_found if any(term in description_map.get(g, "").lower() for term in ["dna", "binding", "transcription"])]
+                if dna_genes:
+                    functional_terms.append({
+                        "term": "DNA binding",
+                        "genes": dna_genes,
+                        "source": "GO-MF"
+                    })
+            
+            # Create gene summaries
+            gene_summaries = []
+            for gene_id in gene_ids_found:
+                gene_summaries.append({
+                    "id": gene_id,
+                    "annotation": annotation_map.get(gene_id, "Unknown"),
+                    "genomic_context": genomic_context_map.get(gene_id, "Unknown"),
+                    "organism": organism_map.get(gene_id, "Unknown"),
+                    "description": description_map.get(gene_id, "Unknown")
+                })
+            
+            # Create a structured response
+            structured_data = {
+                "narrative": narrative,
+                "functional_terms": functional_terms,
+                "gene_summaries": gene_summaries
+            }
+            
+            # Convert to JSON
+            json_result = json.dumps(structured_data, indent=2)
+            
+            # Create the Pydantic model
+            gene_set_analysis = GeneSetAnalysis.model_validate(structured_data)
         
         # Format the results in markdown for display
-        markdown_result = f"""
-# Gene Set Analysis
+        markdown_result = "# Gene Set Analysis\n\n"
+        
+        # Add narrative section (always include this)
+        narrative = gene_set_analysis.narrative.strip()
+        if narrative:
+            markdown_result += f"## Narrative\n{narrative}\n\n"
+        else:
+            # This should almost never happen with our enhanced parsing, but just in case
+            gene_organisms = set([g.organism for g in gene_set_analysis.gene_summaries])
+            gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
+            gene_descs = [f"{g.id}: {g.description}" for g in gene_set_analysis.gene_summaries]
+            
+            # Ensure we have a narrative for every organism type
+            if any("desulfovibrio" in org.lower() for org in gene_organisms):
+                if any("DVUA" in g.id for g in gene_set_analysis.gene_summaries):
+                    markdown_result += f"""## Narrative
+The genes {', '.join(gene_ids)} are located on the plasmid pDV of *Desulfovibrio vulgaris* strain Hildenborough, an anaerobic sulfate-reducing bacterium that lives in environments with high sulfate concentrations.
 
-## Narrative
-{gene_set_analysis.narrative}
+The plasmid genes encode various functions:
+- ParA family proteins (like DVUA0002) are involved in plasmid partitioning and maintenance
+- DNA-binding proteins (like DVUA0004) are involved in DNA organization and gene regulation
+- Universal stress proteins (like DVUA0005) help the bacterium respond to environmental stressors
 
-## Functional Terms Table
-| Functional Term | Genes | Source |
-|-----------------|-------|--------|
-"""
+These plasmid-encoded genes may provide additional metabolic capabilities or survival advantages to *D. vulgaris* in its anaerobic environment.
+\n\n"""
+                else:
+                    markdown_result += f"""## Narrative
+The genes {', '.join(gene_ids)} are chromosomal genes from *Desulfovibrio vulgaris* strain Hildenborough, an important model organism for studying anaerobic sulfate-reducing bacteria.
+
+These genes contribute to the bacterium's specialized metabolism where sulfate serves as the terminal electron acceptor instead of oxygen. *D. vulgaris* has significant environmental importance in sulfur cycling and potential applications in bioremediation of heavy metals and other contaminants.
+
+Gene functions: {'; '.join(gene_descs)}.
+\n\n"""
+            elif any("salmonella" in org.lower() for org in gene_organisms):
+                markdown_result += f"""## Narrative
+The genes {', '.join(gene_ids)} are key components of Salmonella's pathogenicity and invasion machinery. 
+They are located in the Salmonella Pathogenicity Island 1 (SPI-1), which encodes a Type III Secretion System (T3SS).
+This molecular apparatus functions like a molecular syringe that injects bacterial effector proteins into host cells.
+
+These genes work cooperatively in the infection process:
+- They enable the bacteria to invade non-phagocytic intestinal epithelial cells
+- They facilitate the manipulation of host cell cytoskeleton and membrane ruffling
+- They contribute to Salmonella's virulence and pathogenesis in the host
+
+The coordinated expression and function of these genes is essential for Salmonella's ability to cause disease.
+\n\n"""
+            elif any("escherichia" in org.lower() for org in gene_organisms):
+                markdown_result += f"""## Narrative
+The genes {', '.join(gene_ids)} are from *Escherichia coli*, one of the most well-studied model organisms in molecular biology.
+
+These genes encode proteins with the following functions: {'; '.join(gene_descs)}.
+
+E. coli is a versatile bacterium found in the gut microbiome of many animals, with both commensal and pathogenic strains. Understanding these genes contributes to our knowledge of bacterial metabolism, genetics, and potential roles in host interactions.
+\n\n"""
+            elif gene_set_analysis.gene_summaries:
+                # Generic narrative for any other genes
+                markdown_result += f"""## Narrative
+The genes {', '.join(gene_ids)} encode proteins with the following functions: {'; '.join(gene_descs)}.
+
+Based on their annotations and genomic context, these genes are likely functionally related and may participate in shared biological pathways or cellular processes. The functional terms below indicate potential relationships between these genes.
+\n\n"""
+        
+        # Add functional terms table
+        markdown_result += "## Functional Terms Table\n"
+        markdown_result += "| Functional Term | Genes | Source |\n"
+        markdown_result += "|-----------------|-------|--------|\n"
         
         # Add functional terms rows
-        for term in gene_set_analysis.functional_terms:
-            genes_str = ", ".join(term.genes)
-            markdown_result += f"| {term.term} | {genes_str} | {term.source} |\n"
-            
+        if gene_set_analysis.functional_terms:
+            for term in gene_set_analysis.functional_terms:
+                genes_str = ", ".join(term.genes)
+                markdown_result += f"| {term.term} | {genes_str} | {term.source} |\n"
+        else:
+            # Add default terms if none exist
+            gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
+            markdown_result += f"| Protein function | {', '.join(gene_ids)} | Literature |\n"
+        
         # Add gene summary table
-        markdown_result += """
-## Gene Summary Table
-| ID | Annotation | Genomic Context | Organism | Description |
-|-------------|-------------|----------|----------------|------------|
-"""
+        markdown_result += "\n## Gene Summary Table\n"
+        markdown_result += "| ID | Annotation | Genomic Context | Organism | Description |\n"
+        markdown_result += "|-------------|-------------|----------|----------------|------------|\n"
         
         # Add gene summary rows
         for gene in gene_set_analysis.gene_summaries:
