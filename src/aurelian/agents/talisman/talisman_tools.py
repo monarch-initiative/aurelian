@@ -2,6 +2,7 @@
 Tools for retrieving gene information using the UniProt API and NCBI Entrez.
 """
 from typing import Dict, List, Optional, Tuple, Any
+from pydantic import BaseModel, Field
 import openai
 import time
 import threading
@@ -13,6 +14,27 @@ import logging
 from pydantic_ai import RunContext, ModelRetry
 
 from .talisman_config import TalismanConfig, get_config
+
+# Define data models for structured output
+class FunctionalTerm(BaseModel):
+    """A functional term associated with genes."""
+    term: str = Field(..., description="The biological term or concept")
+    genes: List[str] = Field(..., description="List of genes associated with this term")
+    source: str = Field(..., description="The source database or ontology (GO-BP, KEGG, Reactome, etc.)")
+
+class GeneSummary(BaseModel):
+    """Summary information for a gene."""
+    id: str = Field(..., description="The gene identifier (Gene Symbol)")
+    annotation: str = Field(..., description="Genomic coordinates or accession with position")
+    genomic_context: str = Field(..., description="Information about genomic location (chromosome, etc.)")
+    organism: str = Field(..., description="The organism the gene belongs to")
+    description: str = Field(..., description="The protein/gene function description")
+
+class GeneSetAnalysis(BaseModel):
+    """Complete analysis of a gene set."""
+    narrative: str = Field(..., description="Explanation of functional and categorical relationships between genes")
+    functional_terms: List[FunctionalTerm] = Field(..., description="Functional terms associated with the gene set")
+    gene_summaries: List[GeneSummary] = Field(..., description="Summary information for each gene")
 
 # Set up logging
 logging.basicConfig(
@@ -589,69 +611,7 @@ Gene Information:
 
 {f"IMPORTANT: These genes are from {detected_organism or organism}. Make sure your analysis reflects the correct organism context." if detected_organism or organism else ""}
 
-Focus particularly on identifying relationships between at least a pair of these genes.
-If the genes appear unrelated, note this but try to identify any subtle connections based on their function.
-
-Your analysis should include multiple kinds of relationships:
-- Functional relationships
-- Pathway relationships
-- Regulatory relationships
-- Localization patterns
-- Physical interactions
-- Genetic interactions
-
-Format the response with appropriate markdown headings and bullet points.
-
-IMPORTANT: You MUST include ALL of the following sections in your response:
-
-1. First provide your detailed analysis with appropriate headings for each section.
-
-2. After your analysis, include a distinct section titled "## Terms" 
-that contains a semicolon-delimited list of functional terms relevant to the gene set, 
-ordered by relevance. These terms should include:
-- Gene Ontology biological process terms (e.g., DNA repair, oxidative phosphorylation, signal transduction)
-- Molecular function terms (e.g., kinase activity, DNA binding, transporter activity)
-- Cellular component/localization terms (e.g., nucleus, plasma membrane, mitochondria)
-- Pathway names (e.g., glycolysis, TCA cycle, MAPK signaling)
-- Co-regulation terms (e.g., stress response regulon, heat shock response)
-- Interaction networks (e.g., protein complex formation, signaling cascade)
-- Metabolic process terms (e.g., fatty acid synthesis, amino acid metabolism)
-- Regulatory mechanisms (e.g., transcriptional regulation, post-translational modification)
-- Disease associations (if relevant, e.g., virulence, pathogenesis, antibiotic resistance)
-- Structural and functional domains/motifs (e.g., helix-turn-helix, zinc finger)
-
-Example of Terms section:
-## Terms
-DNA damage response; p53 signaling pathway; apoptosis; cell cycle regulation; tumor suppression; DNA repair; protein ubiquitination; transcriptional regulation; nuclear localization; cancer predisposition
-
-3. After the Terms section, include a summary table of the genes analyzed titled "## Gene Summary Table"
-Format it as a markdown table with the following columns in this exact order:
-- ID: The gene identifier (same as Gene Symbol)
-- Annotation: Genomic coordinates or accession with position information
-- Genomic Context: Information about the genomic location (chromosome, plasmid, etc.)
-- Organism: The organism the gene belongs to
-- Description: The protein/gene function description
-
-Make sure the information is accurate based on the gene information provided and do not conflate with similarly named genes from different organisms.
-
-Example:
-
-## Gene Summary Table
-| ID | Annotation | Genomic Context | Organism | Description |
-|-------------|-------------|----------|----------------|------------|
-| BRCA1 | NC_000017.11 (43044295..43125483) | Chromosome 17 | Homo sapiens | Breast cancer type 1 susceptibility protein |
-| TP53 | NC_000017.11 (7668402..7687550) | Chromosome 17 | Homo sapiens | Tumor suppressor protein |
-
-For bacterial genes, the table should look like:
-
-## Gene Summary Table
-| ID | Annotation | Genomic Context | Organism | Description |
-|-------------|-------------|----------|----------------|------------|
-| invA | NC_003197.2 (3038407..3040471, complement) | Chromosome | Salmonella enterica | Invasion protein |
-| DVUA0001 | NC_005863.1 (699..872, complement) | Plasmid pDV | Desulfovibrio vulgaris str. Hildenborough | Hypothetical protein |
-
-REMEMBER: ALL THREE SECTIONS ARE REQUIRED - Main Analysis, Terms, and Gene Summary Table.
-"""
+Please provide a comprehensive analysis of the genes."""
     
     # Access OpenAI API to generate the analysis
     try:
@@ -666,47 +626,100 @@ REMEMBER: ALL THREE SECTIONS ARE REQUIRED - Main Analysis, Terms, and Gene Summa
             openai.api_key = api_key
             
         # Create the completion using OpenAI API
+        system_prompt = """
+You are a biology expert analyzing gene sets. You must provide a comprehensive analysis in JSON format.
+
+Your response must be in this structured format:
+{
+  "narrative": "Detailed explanation of functional relationships between genes, emphasizing shared functions",
+  "functional_terms": [
+    {"term": "DNA damage response", "genes": ["BRCA1", "BRCA2", "ATM"], "source": "GO-BP"},
+    {"term": "Homologous recombination", "genes": ["BRCA1", "BRCA2"], "source": "Reactome"},
+    etc.
+  ],
+  "gene_summaries": [
+    {
+      "id": "BRCA1", 
+      "annotation": "NC_000017.11 (43044295..43170327, complement)", 
+      "genomic_context": "Chromosome 17", 
+      "organism": "Homo sapiens", 
+      "description": "Breast cancer type 1 susceptibility protein"
+    },
+    etc.
+  ]
+}
+
+Your output MUST be valid JSON with these three fields. Do not include any text before or after the JSON.
+"""
+            
         logging.info("Sending request to OpenAI API...")
         response = openai.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": "You are a biology expert analyzing gene sets. Present your results in three sections: (1) Narrative - explaining functional relationships between genes with emphasis on shared functions, (2) Functional Terms Table with columns 'Functional Term', 'Genes', and 'Source', and (3) Gene Summary Table with details for each gene."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3,
-            max_tokens=4000
+            temperature=0.2,
+            max_tokens=4000,
+            response_format={"type": "json_object"}
         )
         logging.info("Received response from OpenAI API")
         
-        # Extract the response content
-        result = response.choices[0].message.content
+        # Extract the response content and parse as JSON
+        json_result = response.choices[0].message.content
         
-        # Save the response to a timestamped file
+        # Parse the JSON response into our Pydantic model
+        gene_set_analysis = GeneSetAnalysis.model_validate_json(json_result)
+        
+        # Format the results in markdown for display
+        markdown_result = f"""
+# Gene Set Analysis
+
+## Narrative
+{gene_set_analysis.narrative}
+
+## Functional Terms Table
+| Functional Term | Genes | Source |
+|-----------------|-------|--------|
+"""
+        
+        # Add functional terms rows
+        for term in gene_set_analysis.functional_terms:
+            genes_str = ", ".join(term.genes)
+            markdown_result += f"| {term.term} | {genes_str} | {term.source} |\n"
+            
+        # Add gene summary table
+        markdown_result += """
+## Gene Summary Table
+| ID | Annotation | Genomic Context | Organism | Description |
+|-------------|-------------|----------|----------------|------------|
+"""
+        
+        # Add gene summary rows
+        for gene in gene_set_analysis.gene_summaries:
+            markdown_result += f"| {gene.id} | {gene.annotation} | {gene.genomic_context} | {gene.organism} | {gene.description} |\n"
+        
+        # Save the results
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"talisman_analysis_{timestamp}.json"
         
-        # Create a directory for analysis results if it doesn't exist
+        # Create both JSON and markdown files
         results_dir = os.path.join(os.path.expanduser("~"), "talisman_results")
         os.makedirs(results_dir, exist_ok=True)
         
-        # Save the full response including metadata
-        file_path = os.path.join(results_dir, filename)
-        logging.info(f"Saving analysis results to: {file_path}")
+        # Save the JSON response
+        json_path = os.path.join(results_dir, f"talisman_analysis_{timestamp}.json")
+        with open(json_path, 'w') as f:
+            f.write(json_result)
         
-        with open(file_path, 'w') as f:
-            # Create a dictionary with both the result and input/metadata
-            output_data = {
-                "timestamp": timestamp,
-                "genes_analyzed": gene_ids,
-                "model": model_name,
-                "raw_response": response.model_dump(),
-                "analysis_result": result
-            }
-            json.dump(output_data, f, indent=2)
+        # Save the markdown formatted response
+        md_path = os.path.join(results_dir, f"talisman_analysis_{timestamp}.md")
+        with open(md_path, 'w') as f:
+            f.write(markdown_result)
             
-        logging.info(f"Analysis complete. Results saved to: {file_path}")
+        logging.info(f"Analysis complete. Results saved to: {json_path} and {md_path}")
         
-        return result
+        # Return the markdown-formatted result for display
+        return markdown_result
     except Exception as e:
         logging.error(f"Error generating gene set analysis: {str(e)}")
         raise ModelRetry(f"Error generating gene set analysis: {str(e)}")

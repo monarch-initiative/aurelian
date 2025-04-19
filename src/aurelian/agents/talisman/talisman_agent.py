@@ -1,5 +1,6 @@
 """
 Agent for working with gene information using the UniProt API and NCBI Entrez.
+Provides structured information in the form of Narrative, Functional Terms Table, and Gene Summary Table.
 """
 from pydantic_ai import Agent
 
