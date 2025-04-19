@@ -33,6 +33,7 @@ async def lookup_pmid(pmid: str) -> str:
     print(f"LOOKUP PMID: {pmid}")
     try:
         result = get_pmid_text(pmid)
+        print(f"RESULT LENGTH: {len(result)} // {result[:100]}")
         if not result or "Error" in result:
             raise ModelRetry(f"Could not retrieve text for PMID: {pmid}. Try using the abstract only or a different identifier.")
         return result
