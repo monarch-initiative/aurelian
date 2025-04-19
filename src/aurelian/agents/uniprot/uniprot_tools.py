@@ -103,3 +103,34 @@ def uniprot_mapping(
         if "ModelRetry" in str(type(e)):
             raise e
         raise ModelRetry(f"Error mapping UniProt entries: {str(e)}")
+
+def map_to_uniprot(ctx: RunContext[UniprotConfig], external_ids: List[str]) -> Dict:
+    """Map Uniprot accessions to UniProt IDs.
+
+    Args:
+        ctx: The run context with access to the config
+        external_ids: The external IDs, as prefixed IDs
+
+    Returns:
+        A dictionary mapping external IDs to UniProt IDs
+    """
+    config = ctx.deps or get_config()
+    u = config.get_uniprot_client()
+    results = {}
+    # split the external IDs by prefix
+    ids_by_prefix = {}  
+    for external_id in external_ids:
+        prefix, id = external_id.split(":")
+        if prefix not in ids_by_prefix:
+            ids_by_prefix[prefix] = []
+        ids_by_prefix[prefix].append(id)
+    for prefix, ids in ids_by_prefix.items():
+        result = u.mapping(prefix, "UniProtKB_AC-ID", ",".join(ids))
+        if 'results' in result:
+            print(result)
+            uniprot_ids = [entry['to'] for entry in result['results']]
+            results[prefix] = uniprot_ids
+        else:
+            print("No mapping found.")
+    return results
+
