@@ -579,8 +579,8 @@ def analyze_gene_set(ctx: RunContext[TalismanConfig], gene_list: str) -> str:
     if detected_organism:
         logging.info(f"Detected organism from gene descriptions: {detected_organism}")
     
-    # Prepare a prompt for the LLM
-    prompt = f"""Analyze the following set of genes and provide a detailed biological summary:
+    # Prepare a prompt for the LLM with minimal instructions (main instructions are in the agent system prompt)
+    prompt = f"""Analyze the following set of genes:
 
 Gene IDs/Symbols: {', '.join(gene_ids)}
 
@@ -588,14 +588,6 @@ Gene Information:
 {gene_descriptions}
 
 {f"IMPORTANT: These genes are from {detected_organism or organism}. Make sure your analysis reflects the correct organism context." if detected_organism or organism else ""}
-
-Based on this information, provide a structured analysis covering:
-1. Shared biological processes these genes may participate in
-2. Potential protein-protein interactions or functional relationships
-3. Common cellular localization patterns
-4. Involvement in similar pathways
-5. Coordinated activities or cooperative functions
-6. Any disease associations that multiple genes in this set share
 
 Focus particularly on identifying relationships between at least a pair of these genes.
 If the genes appear unrelated, note this but try to identify any subtle connections based on their function.
@@ -678,7 +670,7 @@ REMEMBER: ALL THREE SECTIONS ARE REQUIRED - Main Analysis, Terms, and Gene Summa
         response = openai.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": "You are a biology expert analyzing gene sets to identify functional relationships. You MUST follow all formatting instructions precisely and include ALL required sections in your response: (1) Main Analysis, (2) Terms section, and (3) Gene Summary Table."},
+                {"role": "system", "content": "You are a biology expert analyzing gene sets. Present your results in three sections: (1) Narrative - explaining functional relationships between genes with emphasis on shared functions, (2) Functional Terms Table with columns 'Functional Term', 'Genes', and 'Source', and (3) Gene Summary Table with details for each gene."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
