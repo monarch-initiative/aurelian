@@ -3,6 +3,7 @@ Tools for retrieving gene information using the UniProt API and NCBI Entrez.
 """
 from typing import Dict, List, Optional, Tuple, Any
 from pydantic import BaseModel, Field
+import re
 import openai
 import time
 import threading
@@ -32,9 +33,14 @@ class GeneSummary(BaseModel):
 
 class GeneSetAnalysis(BaseModel):
     """Complete analysis of a gene set."""
-    narrative: str = Field(..., description="Explanation of functional and categorical relationships between genes")
-    functional_terms: List[FunctionalTerm] = Field(..., description="Functional terms associated with the gene set")
-    gene_summaries: List[GeneSummary] = Field(..., description="Summary information for each gene")
+    input_species: str = Field(default="", description="The species provided by the user")
+    inferred_species: str = Field(default="", description="The species inferred from the gene data")
+    narrative: str = Field(default="No narrative information available for these genes.", 
+                          description="Explanation of functional and categorical relationships between genes")
+    functional_terms: List[FunctionalTerm] = Field(default_factory=list, 
+                                                 description="Functional terms associated with the gene set")
+    gene_summaries: List[GeneSummary] = Field(default_factory=list, 
+                                            description="Summary information for each gene")
 
 # Set up logging
 logging.basicConfig(
@@ -178,15 +184,10 @@ def get_ncbi_gene_info(ctx: RunContext[TalismanConfig], gene_id: str, organism: 
     config = ctx.deps or get_config()
     ncbi = config.get_ncbi_client()
     
-    # Check if the gene looks like bacterial (common for Salmonella)
-    bacterial_gene_patterns = ["inv", "sip", "sop", "sic", "spa", "ssa", "sse", "prg"]
-    is_likely_bacterial = any(gene_id.lower().startswith(pattern) for pattern in bacterial_gene_patterns)
+    # No need to check for specific gene patterns
     
-    # Default organisms to try based on gene patterns
-    if is_likely_bacterial and not organism:
-        organisms_to_try = ["Salmonella", "Escherichia coli", "Bacteria"]
-    else:
-        organisms_to_try = [organism] if organism else ["Homo sapiens", None]  # Try human first as default, then any organism
+    # Set organisms to try without domain-specific knowledge
+    organisms_to_try = [organism] if organism else [None]  # Use organism if provided, else try without organism constraint
     
     gene_results = None
     
@@ -229,22 +230,22 @@ def get_ncbi_gene_info(ctx: RunContext[TalismanConfig], gene_id: str, organism: 
             return gene_results
         
         # If not found in gene database, try protein database
-        # For bacterial genes, try organism-specific search first
+        # Standard protein search
         protein_ids = []
-        if is_likely_bacterial:
-            for org in organisms_to_try:
-                if org:
-                    logging.info(f"Searching NCBI protein database for: {gene_id} in organism: {org}")
-                    ncbi_limiter.wait()
-                    search_query = f"{gene_id} AND {org}[Organism]"
-                    search_results = ncbi.ESearch("protein", search_query)
-                    protein_ids = search_results.get('idlist', [])
-                    
-                    if protein_ids:
-                        logging.info(f"Found protein ID(s) for {gene_id} in {org}: {protein_ids}")
-                        break
-        else:
-            # Standard protein search (no organism constraint)
+        for org in organisms_to_try:
+            if org:
+                logging.info(f"Searching NCBI protein database for: {gene_id} in organism: {org}")
+                ncbi_limiter.wait()
+                search_query = f"{gene_id} AND {org}[Organism]"
+                search_results = ncbi.ESearch("protein", search_query)
+                protein_ids = search_results.get('idlist', [])
+                
+                if protein_ids:
+                    logging.info(f"Found protein ID(s) for {gene_id} in {org}: {protein_ids}")
+                    break
+        
+        # If no results with organism constraint, try without
+        if not protein_ids:
             logging.info(f"Searching NCBI protein database for: {gene_id}")
             ncbi_limiter.wait()
             search_results = ncbi.ESearch("protein", gene_id)
@@ -325,6 +326,129 @@ def get_ncbi_gene_info(ctx: RunContext[TalismanConfig], gene_id: str, organism: 
         return f"Error querying NCBI Entrez: {str(e)}"
 
 
+def ensure_complete_output(markdown_result: str, gene_set_analysis: GeneSetAnalysis) -> str:
+    """Ensures that the markdown output has all required sections.
+    
+    Args:
+        markdown_result: The original markdown result
+        gene_set_analysis: The structured data model
+        
+    Returns:
+        A complete markdown output with all required sections
+    """
+    logging.info("Post-processing output to ensure all sections are present")
+    
+    # Check if output already has proper sections - always enforce
+    has_narrative = re.search(r'^\s*##\s*Narrative', markdown_result, re.MULTILINE) is not None
+    has_functional_terms = re.search(r'^\s*##\s*Functional Terms Table', markdown_result, re.MULTILINE) is not None
+    has_gene_summary = re.search(r'^\s*##\s*Gene Summary Table', markdown_result, re.MULTILINE) is not None
+    has_species = re.search(r'^\s*#\s*Species', markdown_result, re.MULTILINE) is not None
+    
+    # We'll always rebuild the output to ensure consistent formatting
+    result = ""
+    
+    # Add species section if applicable
+    if gene_set_analysis.input_species or gene_set_analysis.inferred_species:
+        result += "# Species\n"
+        if gene_set_analysis.input_species:
+            result += f"Input: {gene_set_analysis.input_species}\n"
+        if gene_set_analysis.inferred_species:
+            result += f"Inferred: {gene_set_analysis.inferred_species}\n"
+        result += "\n"
+    
+    # Add main header
+    result += "# Gene Set Analysis\n\n"
+    
+    # Add narrative section - always include
+    result += "## Narrative\n"
+    if has_narrative:
+        # Extract existing narrative if it exists
+        narrative_match = re.search(r'##\s*Narrative\s*\n(.*?)(?=^\s*##|\Z)', 
+                                   markdown_result, re.MULTILINE | re.DOTALL)
+        if narrative_match and narrative_match.group(1).strip():
+            result += narrative_match.group(1).strip() + "\n\n"
+        else:
+            result += f"{gene_set_analysis.narrative}\n\n"
+    else:
+        # Use the narrative from the model
+        result += f"{gene_set_analysis.narrative}\n\n"
+    
+    # Add functional terms table - always include
+    result += "## Functional Terms Table\n"
+    result += "| Functional Term | Genes | Source |\n"
+    result += "|-----------------|-------|--------|\n"
+    
+    if has_functional_terms:
+        # Try to extract existing table content
+        ft_match = re.search(r'##\s*Functional Terms Table\s*\n\|.*\|\s*\n\|[-\s|]*\|\s*\n(.*?)(?=^\s*##|\Z)', 
+                           markdown_result, re.MULTILINE | re.DOTALL)
+        if ft_match and ft_match.group(1).strip():
+            # Use existing content
+            for line in ft_match.group(1).strip().split("\n"):
+                if line.strip() and "|" in line:
+                    result += line + "\n"
+        elif gene_set_analysis.functional_terms:
+            # Use model content
+            for term in gene_set_analysis.functional_terms:
+                genes_str = ", ".join(term.genes)
+                result += f"| {term.term} | {genes_str} | {term.source} |\n"
+        else:
+            # Create default content
+            gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
+            if gene_ids:
+                result += f"| Gene set | {', '.join(gene_ids)} | Analysis |\n"
+            else:
+                result += "| No terms available | - | - |\n"
+    else:
+        # Always include functional terms, using content from model
+        if gene_set_analysis.functional_terms:
+            for term in gene_set_analysis.functional_terms:
+                genes_str = ", ".join(term.genes)
+                result += f"| {term.term} | {genes_str} | {term.source} |\n"
+        else:
+            # Create default content if model has none
+            gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
+            if gene_ids:
+                result += f"| Gene set | {', '.join(gene_ids)} | Analysis |\n"
+            else:
+                result += "| No terms available | - | - |\n"
+    
+    result += "\n"
+    
+    # Add gene summary table - always include
+    result += "## Gene Summary Table\n"
+    result += "| ID | Annotation | Genomic Context | Organism | Description |\n"
+    result += "|-------------|-------------|----------|----------------|------------|\n"
+    
+    if has_gene_summary:
+        # Try to extract existing gene summary
+        gs_match = re.search(r'##\s*Gene Summary Table\s*\n\|.*\|\s*\n\|[-\s|]*\|\s*\n(.*?)(?=^\s*##|\Z)', 
+                           markdown_result, re.MULTILINE | re.DOTALL)
+        if gs_match and gs_match.group(1).strip():
+            # Use existing content
+            for line in gs_match.group(1).strip().split("\n"):
+                if line.strip() and "|" in line:
+                    result += line + "\n"
+        elif gene_set_analysis.gene_summaries:
+            # Use model content
+            for gene in gene_set_analysis.gene_summaries:
+                result += f"| {gene.id} | {gene.annotation} | {gene.genomic_context} | {gene.organism} | {gene.description} |\n"
+        else:
+            # Create default content
+            result += "| No gene information available | - | - | - | - |\n"
+    else:
+        # Always include gene summary, using content from model
+        if gene_set_analysis.gene_summaries:
+            for gene in gene_set_analysis.gene_summaries:
+                result += f"| {gene.id} | {gene.annotation} | {gene.genomic_context} | {gene.organism} | {gene.description} |\n"
+        else:
+            # Create default content if model has none
+            result += "| No gene information available | - | - | - | - |\n"
+    
+    logging.info("Successfully enforced all required sections in the output")
+    return result
+
+
 def get_gene_description(ctx: RunContext[TalismanConfig], gene_id: str, organism: str = None) -> str:
     """Get description for a single gene ID, using UniProt and falling back to NCBI Entrez.
 
@@ -339,15 +463,6 @@ def get_gene_description(ctx: RunContext[TalismanConfig], gene_id: str, organism
     logging.info(f"Getting description for gene: {gene_id}")
     config = ctx.deps or get_config()
     u = config.get_uniprot_client()
-    
-    # Check if this looks like a bacterial gene code
-    bacterial_gene_patterns = ["inv", "sip", "sop", "sic", "spa", "ssa", "sse", "prg", "flh", "fli", "che"]
-    is_likely_bacterial = any(gene_id.lower().startswith(pattern) for pattern in bacterial_gene_patterns)
-    
-    # Auto-detect organism based on gene pattern
-    if is_likely_bacterial and not organism:
-        logging.info(f"Gene {gene_id} matches bacterial pattern, setting organism to Salmonella")
-        organism = "Salmonella"
     
     try:
         # Normalize the gene ID
@@ -546,25 +661,9 @@ def analyze_gene_set(ctx: RunContext[TalismanConfig], gene_list: str) -> str:
     """
     logging.info(f"Starting gene set analysis for: {gene_list}")
     
-    # Detect if these look like bacterial genes
-    bacterial_gene_patterns = ["inv", "sip", "sop", "sic", "spa", "ssa", "sse", "prg", "flh", "fli", "che", "DVU"]
+    # Parse the gene list
     gene_ids_list = parse_gene_list(gene_list)
-    is_likely_bacterial = any(
-        any(gene_id.lower().startswith(pattern) for pattern in bacterial_gene_patterns)
-        for gene_id in gene_ids_list
-    )
-    
-    # Set organism based on pattern detection
-    organism = None
-    if is_likely_bacterial:
-        logging.info(f"Detected likely bacterial genes: {gene_list}")
-        # Check for specific bacterial gene patterns
-        if any(gene_id.lower().startswith(("inv", "sip", "sop", "sic", "spa")) for gene_id in gene_ids_list):
-            organism = "Salmonella"
-            logging.info(f"Setting organism to Salmonella based on gene patterns")
-        elif any(gene_id.startswith("DVU") for gene_id in gene_ids_list):
-            organism = "Desulfovibrio"
-            logging.info(f"Setting organism to Desulfovibrio based on gene patterns")
+    organism = None  # Let the gene lookup systems determine the organism
     
     # First, get detailed information about each gene
     logging.info("Retrieving gene descriptions...")
@@ -720,122 +819,44 @@ Your output MUST be valid JSON with these three fields. Do not include any text 
                 )]
             ).strip()
             
-            # Check if we need to enhance the narrative
-            if len(gene_ids_found) > 0:
-                gene_ids_str = ", ".join(gene_ids_found)
-                
-                # Create organism-specific narratives
-                if any("desulfovibrio" in g.lower() for g in organism_map.values()):
-                    if any("DVUA" in g for g in gene_ids_found):
-                        # DVUA genes are from plasmid pDV
-                        narrative = f"""The genes {gene_ids_str} are located on the plasmid pDV of *Desulfovibrio vulgaris* strain Hildenborough, an anaerobic sulfate-reducing bacterium.
-
-This plasmid contains genes involved in various cellular functions:
-- DVUA0002 encodes a ParA family protein involved in plasmid partitioning and maintenance
-- DVUA0004 encodes DNA-binding protein HU, which binds to and compacts DNA
-- DVUA0005 encodes a universal stress protein that plays a role in the cellular response to various stressors
-
-The plasmid may confer additional metabolic capabilities or survival advantages to the host bacterium in its anaerobic environment."""
-                    else:
-                        # DVU genes are chromosomal
-                        narrative = f"""The genes {gene_ids_str} are located in the chromosome of *Desulfovibrio vulgaris* strain Hildenborough, a model organism for studying sulfate-reducing bacteria.
-
-These genes contribute to the bacterium's unique anaerobic metabolism and its ability to use sulfate as a terminal electron acceptor. *D. vulgaris* plays important environmental roles in sulfur cycling and can have applications in bioremediation of heavy metals and other contaminants."""
-                elif any("salmonella" in g.lower() for g in organism_map.values()):
-                    narrative = f"""The genes {gene_ids_str} are key components of Salmonella's pathogenicity and invasion machinery.
-
-They are part of the Salmonella Pathogenicity Island 1 (SPI-1), which encodes a Type III Secretion System (T3SS). This molecular apparatus functions like a molecular syringe that injects bacterial effector proteins into host cells to facilitate invasion and infection."""
-                else:
-                    # For any other organism, use the existing narrative if it's substantial
-                    if len(existing_narrative.split()) > 10:
-                        narrative = existing_narrative
-                    else:
-                        # Generic narrative
-                        descriptions = [description_map.get(g, "Unknown function") for g in gene_ids_found]
-                        narrative = f"""The genes {gene_ids_str} encode proteins with the following functions: {', '.join(descriptions)}.
-
-Based on their annotations and genomic context, these genes likely work together in related biological pathways or cellular processes as detailed in the functional terms below."""
-            else:
+            # Use existing narrative if it exists and is substantial
+            if existing_narrative and len(existing_narrative.split()) > 10:
                 narrative = existing_narrative
+            # Otherwise create a generic narrative from the gene info we have
+            elif len(gene_ids_found) > 0:
+                gene_ids_str = ", ".join(gene_ids_found)
+                descriptions = [f"{g}: {description_map.get(g, 'Unknown function')}" for g in gene_ids_found]
+                common_organism = next(iter(set(organism_map.values())), "Unknown organism")
+                
+                narrative = f"""The genes {gene_ids_str} are from {common_organism}.
+
+Gene functions: {'; '.join(descriptions)}.
+
+Based on their annotations and genomic context, these genes may be functionally related and potentially participate in shared biological pathways or cellular processes."""
+            else:
+                narrative = "No gene information available."
             
-            # Create functional terms based on organism and gene description
+            # Create generic functional terms based on gene descriptions
             functional_terms = []
             
-            # Detect organism type
-            if any("salmonella" in g.lower() for g in organism_map.values()):
-                # Salmonella-specific terms
+            # If we have gene IDs and descriptions, create a basic functional term
+            if gene_ids_found:
+                # Create a default functional term with all genes
                 functional_terms.append({
-                    "term": "Host cell invasion",
+                    "term": "Gene set",
                     "genes": gene_ids_found,
-                    "source": "Pathway"
-                })
-                functional_terms.append({
-                    "term": "Virulence",
-                    "genes": gene_ids_found,
-                    "source": "GO-BP"
-                })
-                functional_terms.append({
-                    "term": "Type III secretion system",
-                    "genes": gene_ids_found,
-                    "source": "GO-CC"
-                })
-            elif any("desulfovibrio" in g.lower() for g in organism_map.values()):
-                # Desulfovibrio-specific terms
-                if any("DVU" in g for g in gene_ids_found):
-                    # Chromosome genes
-                    functional_terms.append({
-                        "term": "Sulfate reduction",
-                        "genes": gene_ids_found,
-                        "source": "GO-BP"
-                    })
-                elif any("DVUA" in g for g in gene_ids_found):
-                    # Plasmid genes
-                    functional_terms.append({
-                        "term": "Plasmid maintenance",
-                        "genes": [g for g in gene_ids_found if "DVUA0002" in g],
-                        "source": "GO-BP"
-                    })
-                    functional_terms.append({
-                        "term": "DNA binding",
-                        "genes": [g for g in gene_ids_found if "DVUA0004" in g],
-                        "source": "GO-MF"
-                    })
-                    functional_terms.append({
-                        "term": "Stress response",
-                        "genes": [g for g in gene_ids_found if "DVUA0005" in g],
-                        "source": "GO-BP"
-                    })
-                
-                # Add general terms
-                functional_terms.append({
-                    "term": "Anaerobic respiration", 
-                    "genes": gene_ids_found,
-                    "source": "GO-BP"
-                })
-            else:
-                # Generic bacterial terms if no specific organism is recognized
-                functional_terms.append({
-                    "term": "Bacterial processes",
-                    "genes": gene_ids_found,
-                    "source": "GO-BP"
+                    "source": "Analysis"
                 })
                 
-                # Add terms based on descriptions
-                stress_genes = [g for g in gene_ids_found if any(term in description_map.get(g, "").lower() for term in ["stress", "response"])]
-                if stress_genes:
-                    functional_terms.append({
-                        "term": "Stress response",
-                        "genes": stress_genes,
-                        "source": "GO-BP"
-                    })
-                
-                dna_genes = [g for g in gene_ids_found if any(term in description_map.get(g, "").lower() for term in ["dna", "binding", "transcription"])]
-                if dna_genes:
-                    functional_terms.append({
-                        "term": "DNA binding",
-                        "genes": dna_genes,
-                        "source": "GO-MF"
-                    })
+                # Only extract functional terms from descriptions, without hardcoded knowledge
+                for gene_id in gene_ids_found:
+                    description = description_map.get(gene_id, "").lower()
+                    if description and len(description) > 3:
+                        functional_terms.append({
+                            "term": f"{gene_id} function",
+                            "genes": [gene_id],
+                            "source": "Annotation"
+                        })
             
             # Create gene summaries
             gene_summaries = []
@@ -869,59 +890,23 @@ Based on their annotations and genomic context, these genes likely work together
         if narrative:
             markdown_result += f"## Narrative\n{narrative}\n\n"
         else:
-            # This should almost never happen with our enhanced parsing, but just in case
-            gene_organisms = set([g.organism for g in gene_set_analysis.gene_summaries])
+            # Create a generic narrative based on gene data without domain-specific information
             gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
             gene_descs = [f"{g.id}: {g.description}" for g in gene_set_analysis.gene_summaries]
+            organisms = list(set([g.organism for g in gene_set_analysis.gene_summaries]))
             
-            # Ensure we have a narrative for every organism type
-            if any("desulfovibrio" in org.lower() for org in gene_organisms):
-                if any("DVUA" in g.id for g in gene_set_analysis.gene_summaries):
-                    markdown_result += f"""## Narrative
-The genes {', '.join(gene_ids)} are located on the plasmid pDV of *Desulfovibrio vulgaris* strain Hildenborough, an anaerobic sulfate-reducing bacterium that lives in environments with high sulfate concentrations.
-
-The plasmid genes encode various functions:
-- ParA family proteins (like DVUA0002) are involved in plasmid partitioning and maintenance
-- DNA-binding proteins (like DVUA0004) are involved in DNA organization and gene regulation
-- Universal stress proteins (like DVUA0005) help the bacterium respond to environmental stressors
-
-These plasmid-encoded genes may provide additional metabolic capabilities or survival advantages to *D. vulgaris* in its anaerobic environment.
-\n\n"""
-                else:
-                    markdown_result += f"""## Narrative
-The genes {', '.join(gene_ids)} are chromosomal genes from *Desulfovibrio vulgaris* strain Hildenborough, an important model organism for studying anaerobic sulfate-reducing bacteria.
-
-These genes contribute to the bacterium's specialized metabolism where sulfate serves as the terminal electron acceptor instead of oxygen. *D. vulgaris* has significant environmental importance in sulfur cycling and potential applications in bioremediation of heavy metals and other contaminants.
+            if gene_set_analysis.gene_summaries:
+                organism_str = organisms[0] if organisms else "Unknown organism"
+                markdown_result += f"""## Narrative
+The genes {', '.join(gene_ids)} are from {organism_str}.
 
 Gene functions: {'; '.join(gene_descs)}.
+
+Based on their annotations and genomic context, these genes may be functionally related and could potentially participate in shared biological pathways or cellular processes.
 \n\n"""
-            elif any("salmonella" in org.lower() for org in gene_organisms):
+            else:
                 markdown_result += f"""## Narrative
-The genes {', '.join(gene_ids)} are key components of Salmonella's pathogenicity and invasion machinery. 
-They are located in the Salmonella Pathogenicity Island 1 (SPI-1), which encodes a Type III Secretion System (T3SS).
-This molecular apparatus functions like a molecular syringe that injects bacterial effector proteins into host cells.
-
-These genes work cooperatively in the infection process:
-- They enable the bacteria to invade non-phagocytic intestinal epithelial cells
-- They facilitate the manipulation of host cell cytoskeleton and membrane ruffling
-- They contribute to Salmonella's virulence and pathogenesis in the host
-
-The coordinated expression and function of these genes is essential for Salmonella's ability to cause disease.
-\n\n"""
-            elif any("escherichia" in org.lower() for org in gene_organisms):
-                markdown_result += f"""## Narrative
-The genes {', '.join(gene_ids)} are from *Escherichia coli*, one of the most well-studied model organisms in molecular biology.
-
-These genes encode proteins with the following functions: {'; '.join(gene_descs)}.
-
-E. coli is a versatile bacterium found in the gut microbiome of many animals, with both commensal and pathogenic strains. Understanding these genes contributes to our knowledge of bacterial metabolism, genetics, and potential roles in host interactions.
-\n\n"""
-            elif gene_set_analysis.gene_summaries:
-                # Generic narrative for any other genes
-                markdown_result += f"""## Narrative
-The genes {', '.join(gene_ids)} encode proteins with the following functions: {'; '.join(gene_descs)}.
-
-Based on their annotations and genomic context, these genes are likely functionally related and may participate in shared biological pathways or cellular processes. The functional terms below indicate potential relationships between these genes.
+No gene information available.
 \n\n"""
         
         # Add functional terms table
@@ -967,8 +952,11 @@ Based on their annotations and genomic context, these genes are likely functiona
             
         logging.info(f"Analysis complete. Results saved to: {json_path} and {md_path}")
         
-        # Return the markdown-formatted result for display
-        return markdown_result
+        # Ensure all required sections are present in the markdown output
+        final_output = ensure_complete_output(markdown_result, gene_set_analysis)
+        
+        # Return the post-processed markdown-formatted result for display
+        return final_output
     except Exception as e:
         logging.error(f"Error generating gene set analysis: {str(e)}")
         raise ModelRetry(f"Error generating gene set analysis: {str(e)}")
