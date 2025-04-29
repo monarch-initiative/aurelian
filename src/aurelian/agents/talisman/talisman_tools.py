@@ -2,6 +2,8 @@
 Tools for retrieving gene information using the UniProt API and NCBI Entrez.
 """
 from typing import Dict, List, Optional, Tuple, Any
+from pydantic import BaseModel, Field
+import re
 import openai
 import time
 import threading
@@ -13,6 +15,32 @@ import logging
 from pydantic_ai import RunContext, ModelRetry
 
 from .talisman_config import TalismanConfig, get_config
+
+# Define data models for structured output
+class FunctionalTerm(BaseModel):
+    """A functional term associated with genes."""
+    term: str = Field(..., description="The biological term or concept")
+    genes: List[str] = Field(..., description="List of genes associated with this term")
+    source: str = Field(..., description="The source database or ontology (GO-BP, KEGG, Reactome, etc.)")
+
+class GeneSummary(BaseModel):
+    """Summary information for a gene."""
+    id: str = Field(..., description="The gene identifier (Gene Symbol)")
+    annotation: str = Field(..., description="Genomic coordinates or accession with position")
+    genomic_context: str = Field(..., description="Information about genomic location (chromosome, etc.)")
+    organism: str = Field(..., description="The organism the gene belongs to")
+    description: str = Field(..., description="The protein/gene function description")
+
+class GeneSetAnalysis(BaseModel):
+    """Complete analysis of a gene set."""
+    input_species: str = Field(default="", description="The species provided by the user")
+    inferred_species: str = Field(default="", description="The species inferred from the gene data")
+    narrative: str = Field(default="No narrative information available for these genes.", 
+                          description="Explanation of functional and categorical relationships between genes")
+    functional_terms: List[FunctionalTerm] = Field(default_factory=list, 
+                                                 description="Functional terms associated with the gene set")
+    gene_summaries: List[GeneSummary] = Field(default_factory=list, 
+                                            description="Summary information for each gene")
 
 # Set up logging
 logging.basicConfig(
@@ -156,15 +184,10 @@ def get_ncbi_gene_info(ctx: RunContext[TalismanConfig], gene_id: str, organism: 
     config = ctx.deps or get_config()
     ncbi = config.get_ncbi_client()
     
-    # Check if the gene looks like bacterial (common for Salmonella)
-    bacterial_gene_patterns = ["inv", "sip", "sop", "sic", "spa", "ssa", "sse", "prg"]
-    is_likely_bacterial = any(gene_id.lower().startswith(pattern) for pattern in bacterial_gene_patterns)
+    # No need to check for specific gene patterns
     
-    # Default organisms to try based on gene patterns
-    if is_likely_bacterial and not organism:
-        organisms_to_try = ["Salmonella", "Escherichia coli", "Bacteria"]
-    else:
-        organisms_to_try = [organism] if organism else ["Homo sapiens", None]  # Try human first as default, then any organism
+    # Set organisms to try without domain-specific knowledge
+    organisms_to_try = [organism] if organism else [None]  # Use organism if provided, else try without organism constraint
     
     gene_results = None
     
@@ -207,22 +230,22 @@ def get_ncbi_gene_info(ctx: RunContext[TalismanConfig], gene_id: str, organism: 
             return gene_results
         
         # If not found in gene database, try protein database
-        # For bacterial genes, try organism-specific search first
+        # Standard protein search
         protein_ids = []
-        if is_likely_bacterial:
-            for org in organisms_to_try:
-                if org:
-                    logging.info(f"Searching NCBI protein database for: {gene_id} in organism: {org}")
-                    ncbi_limiter.wait()
-                    search_query = f"{gene_id} AND {org}[Organism]"
-                    search_results = ncbi.ESearch("protein", search_query)
-                    protein_ids = search_results.get('idlist', [])
-                    
-                    if protein_ids:
-                        logging.info(f"Found protein ID(s) for {gene_id} in {org}: {protein_ids}")
-                        break
-        else:
-            # Standard protein search (no organism constraint)
+        for org in organisms_to_try:
+            if org:
+                logging.info(f"Searching NCBI protein database for: {gene_id} in organism: {org}")
+                ncbi_limiter.wait()
+                search_query = f"{gene_id} AND {org}[Organism]"
+                search_results = ncbi.ESearch("protein", search_query)
+                protein_ids = search_results.get('idlist', [])
+                
+                if protein_ids:
+                    logging.info(f"Found protein ID(s) for {gene_id} in {org}: {protein_ids}")
+                    break
+        
+        # If no results with organism constraint, try without
+        if not protein_ids:
             logging.info(f"Searching NCBI protein database for: {gene_id}")
             ncbi_limiter.wait()
             search_results = ncbi.ESearch("protein", gene_id)
@@ -303,6 +326,129 @@ def get_ncbi_gene_info(ctx: RunContext[TalismanConfig], gene_id: str, organism: 
         return f"Error querying NCBI Entrez: {str(e)}"
 
 
+def ensure_complete_output(markdown_result: str, gene_set_analysis: GeneSetAnalysis) -> str:
+    """Ensures that the markdown output has all required sections.
+    
+    Args:
+        markdown_result: The original markdown result
+        gene_set_analysis: The structured data model
+        
+    Returns:
+        A complete markdown output with all required sections
+    """
+    logging.info("Post-processing output to ensure all sections are present")
+    
+    # Check if output already has proper sections - always enforce
+    has_narrative = re.search(r'^\s*##\s*Narrative', markdown_result, re.MULTILINE) is not None
+    has_functional_terms = re.search(r'^\s*##\s*Functional Terms Table', markdown_result, re.MULTILINE) is not None
+    has_gene_summary = re.search(r'^\s*##\s*Gene Summary Table', markdown_result, re.MULTILINE) is not None
+    has_species = re.search(r'^\s*#\s*Species', markdown_result, re.MULTILINE) is not None
+    
+    # We'll always rebuild the output to ensure consistent formatting
+    result = ""
+    
+    # Add species section if applicable
+    if gene_set_analysis.input_species or gene_set_analysis.inferred_species:
+        result += "# Species\n"
+        if gene_set_analysis.input_species:
+            result += f"Input: {gene_set_analysis.input_species}\n"
+        if gene_set_analysis.inferred_species:
+            result += f"Inferred: {gene_set_analysis.inferred_species}\n"
+        result += "\n"
+    
+    # Add main header
+    result += "# Gene Set Analysis\n\n"
+    
+    # Add narrative section - always include
+    result += "## Narrative\n"
+    if has_narrative:
+        # Extract existing narrative if it exists
+        narrative_match = re.search(r'##\s*Narrative\s*\n(.*?)(?=^\s*##|\Z)', 
+                                   markdown_result, re.MULTILINE | re.DOTALL)
+        if narrative_match and narrative_match.group(1).strip():
+            result += narrative_match.group(1).strip() + "\n\n"
+        else:
+            result += f"{gene_set_analysis.narrative}\n\n"
+    else:
+        # Use the narrative from the model
+        result += f"{gene_set_analysis.narrative}\n\n"
+    
+    # Add functional terms table - always include
+    result += "## Functional Terms Table\n"
+    result += "| Functional Term | Genes | Source |\n"
+    result += "|-----------------|-------|--------|\n"
+    
+    if has_functional_terms:
+        # Try to extract existing table content
+        ft_match = re.search(r'##\s*Functional Terms Table\s*\n\|.*\|\s*\n\|[-\s|]*\|\s*\n(.*?)(?=^\s*##|\Z)', 
+                           markdown_result, re.MULTILINE | re.DOTALL)
+        if ft_match and ft_match.group(1).strip():
+            # Use existing content
+            for line in ft_match.group(1).strip().split("\n"):
+                if line.strip() and "|" in line:
+                    result += line + "\n"
+        elif gene_set_analysis.functional_terms:
+            # Use model content
+            for term in gene_set_analysis.functional_terms:
+                genes_str = ", ".join(term.genes)
+                result += f"| {term.term} | {genes_str} | {term.source} |\n"
+        else:
+            # Create default content
+            gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
+            if gene_ids:
+                result += f"| Gene set | {', '.join(gene_ids)} | Analysis |\n"
+            else:
+                result += "| No terms available | - | - |\n"
+    else:
+        # Always include functional terms, using content from model
+        if gene_set_analysis.functional_terms:
+            for term in gene_set_analysis.functional_terms:
+                genes_str = ", ".join(term.genes)
+                result += f"| {term.term} | {genes_str} | {term.source} |\n"
+        else:
+            # Create default content if model has none
+            gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
+            if gene_ids:
+                result += f"| Gene set | {', '.join(gene_ids)} | Analysis |\n"
+            else:
+                result += "| No terms available | - | - |\n"
+    
+    result += "\n"
+    
+    # Add gene summary table - always include
+    result += "## Gene Summary Table\n"
+    result += "| ID | Annotation | Genomic Context | Organism | Description |\n"
+    result += "|-------------|-------------|----------|----------------|------------|\n"
+    
+    if has_gene_summary:
+        # Try to extract existing gene summary
+        gs_match = re.search(r'##\s*Gene Summary Table\s*\n\|.*\|\s*\n\|[-\s|]*\|\s*\n(.*?)(?=^\s*##|\Z)', 
+                           markdown_result, re.MULTILINE | re.DOTALL)
+        if gs_match and gs_match.group(1).strip():
+            # Use existing content
+            for line in gs_match.group(1).strip().split("\n"):
+                if line.strip() and "|" in line:
+                    result += line + "\n"
+        elif gene_set_analysis.gene_summaries:
+            # Use model content
+            for gene in gene_set_analysis.gene_summaries:
+                result += f"| {gene.id} | {gene.annotation} | {gene.genomic_context} | {gene.organism} | {gene.description} |\n"
+        else:
+            # Create default content
+            result += "| No gene information available | - | - | - | - |\n"
+    else:
+        # Always include gene summary, using content from model
+        if gene_set_analysis.gene_summaries:
+            for gene in gene_set_analysis.gene_summaries:
+                result += f"| {gene.id} | {gene.annotation} | {gene.genomic_context} | {gene.organism} | {gene.description} |\n"
+        else:
+            # Create default content if model has none
+            result += "| No gene information available | - | - | - | - |\n"
+    
+    logging.info("Successfully enforced all required sections in the output")
+    return result
+
+
 def get_gene_description(ctx: RunContext[TalismanConfig], gene_id: str, organism: str = None) -> str:
     """Get description for a single gene ID, using UniProt and falling back to NCBI Entrez.
 
@@ -317,15 +463,6 @@ def get_gene_description(ctx: RunContext[TalismanConfig], gene_id: str, organism
     logging.info(f"Getting description for gene: {gene_id}")
     config = ctx.deps or get_config()
     u = config.get_uniprot_client()
-    
-    # Check if this looks like a bacterial gene code
-    bacterial_gene_patterns = ["inv", "sip", "sop", "sic", "spa", "ssa", "sse", "prg", "flh", "fli", "che"]
-    is_likely_bacterial = any(gene_id.lower().startswith(pattern) for pattern in bacterial_gene_patterns)
-    
-    # Auto-detect organism based on gene pattern
-    if is_likely_bacterial and not organism:
-        logging.info(f"Gene {gene_id} matches bacterial pattern, setting organism to Salmonella")
-        organism = "Salmonella"
     
     try:
         # Normalize the gene ID
@@ -520,29 +657,13 @@ def analyze_gene_set(ctx: RunContext[TalismanConfig], gene_list: str) -> str:
         gene_list: String containing gene identifiers separated by commas, spaces, or newlines
         
     Returns:
-        A structured biological summary of the gene set
+        A structured biological summary of the gene set with Narrative, Functional Terms Table, and Gene Summary Table
     """
     logging.info(f"Starting gene set analysis for: {gene_list}")
     
-    # Detect if these look like bacterial genes
-    bacterial_gene_patterns = ["inv", "sip", "sop", "sic", "spa", "ssa", "sse", "prg", "flh", "fli", "che", "DVU"]
+    # Parse the gene list
     gene_ids_list = parse_gene_list(gene_list)
-    is_likely_bacterial = any(
-        any(gene_id.lower().startswith(pattern) for pattern in bacterial_gene_patterns)
-        for gene_id in gene_ids_list
-    )
-    
-    # Set organism based on pattern detection
-    organism = None
-    if is_likely_bacterial:
-        logging.info(f"Detected likely bacterial genes: {gene_list}")
-        # Check for specific bacterial gene patterns
-        if any(gene_id.lower().startswith(("inv", "sip", "sop", "sic", "spa")) for gene_id in gene_ids_list):
-            organism = "Salmonella"
-            logging.info(f"Setting organism to Salmonella based on gene patterns")
-        elif any(gene_id.startswith("DVU") for gene_id in gene_ids_list):
-            organism = "Desulfovibrio"
-            logging.info(f"Setting organism to Desulfovibrio based on gene patterns")
+    organism = None  # Let the gene lookup systems determine the organism
     
     # First, get detailed information about each gene
     logging.info("Retrieving gene descriptions...")
@@ -579,8 +700,8 @@ def analyze_gene_set(ctx: RunContext[TalismanConfig], gene_list: str) -> str:
     if detected_organism:
         logging.info(f"Detected organism from gene descriptions: {detected_organism}")
     
-    # Prepare a prompt for the LLM
-    prompt = f"""Analyze the following set of genes and provide a detailed biological summary:
+    # Prepare a prompt for the LLM with minimal instructions (main instructions are in the agent system prompt)
+    prompt = f"""Analyze the following set of genes:
 
 Gene IDs/Symbols: {', '.join(gene_ids)}
 
@@ -589,77 +710,7 @@ Gene Information:
 
 {f"IMPORTANT: These genes are from {detected_organism or organism}. Make sure your analysis reflects the correct organism context." if detected_organism or organism else ""}
 
-Based on this information, provide a structured analysis covering:
-1. Shared biological processes these genes may participate in
-2. Potential protein-protein interactions or functional relationships
-3. Common cellular localization patterns
-4. Involvement in similar pathways
-5. Coordinated activities or cooperative functions
-6. Any disease associations that multiple genes in this set share
-
-Focus particularly on identifying relationships between at least a pair of these genes.
-If the genes appear unrelated, note this but try to identify any subtle connections based on their function.
-
-Your analysis should include multiple kinds of relationships:
-- Functional relationships
-- Pathway relationships
-- Regulatory relationships
-- Localization patterns
-- Physical interactions
-- Genetic interactions
-
-Format the response with appropriate markdown headings and bullet points.
-
-IMPORTANT: You MUST include ALL of the following sections in your response:
-
-1. First provide your detailed analysis with appropriate headings for each section.
-
-2. After your analysis, include a distinct section titled "## Terms" 
-that contains a semicolon-delimited list of functional terms relevant to the gene set, 
-ordered by relevance. These terms should include:
-- Gene Ontology biological process terms (e.g., DNA repair, oxidative phosphorylation, signal transduction)
-- Molecular function terms (e.g., kinase activity, DNA binding, transporter activity)
-- Cellular component/localization terms (e.g., nucleus, plasma membrane, mitochondria)
-- Pathway names (e.g., glycolysis, TCA cycle, MAPK signaling)
-- Co-regulation terms (e.g., stress response regulon, heat shock response)
-- Interaction networks (e.g., protein complex formation, signaling cascade)
-- Metabolic process terms (e.g., fatty acid synthesis, amino acid metabolism)
-- Regulatory mechanisms (e.g., transcriptional regulation, post-translational modification)
-- Disease associations (if relevant, e.g., virulence, pathogenesis, antibiotic resistance)
-- Structural and functional domains/motifs (e.g., helix-turn-helix, zinc finger)
-
-Example of Terms section:
-## Terms
-DNA damage response; p53 signaling pathway; apoptosis; cell cycle regulation; tumor suppression; DNA repair; protein ubiquitination; transcriptional regulation; nuclear localization; cancer predisposition
-
-3. After the Terms section, include a summary table of the genes analyzed titled "## Gene Summary Table"
-Format it as a markdown table with the following columns in this exact order:
-- ID: The gene identifier (same as Gene Symbol)
-- Annotation: Genomic coordinates or accession with position information
-- Genomic Context: Information about the genomic location (chromosome, plasmid, etc.)
-- Organism: The organism the gene belongs to
-- Description: The protein/gene function description
-
-Make sure the information is accurate based on the gene information provided and do not conflate with similarly named genes from different organisms.
-
-Example:
-
-## Gene Summary Table
-| ID | Annotation | Genomic Context | Organism | Description |
-|-------------|-------------|----------|----------------|------------|
-| BRCA1 | NC_000017.11 (43044295..43125483) | Chromosome 17 | Homo sapiens | Breast cancer type 1 susceptibility protein |
-| TP53 | NC_000017.11 (7668402..7687550) | Chromosome 17 | Homo sapiens | Tumor suppressor protein |
-
-For bacterial genes, the table should look like:
-
-## Gene Summary Table
-| ID | Annotation | Genomic Context | Organism | Description |
-|-------------|-------------|----------|----------------|------------|
-| invA | NC_003197.2 (3038407..3040471, complement) | Chromosome | Salmonella enterica | Invasion protein |
-| DVUA0001 | NC_005863.1 (699..872, complement) | Plasmid pDV | Desulfovibrio vulgaris str. Hildenborough | Hypothetical protein |
-
-REMEMBER: ALL THREE SECTIONS ARE REQUIRED - Main Analysis, Terms, and Gene Summary Table.
-"""
+Please provide a comprehensive analysis of the genes."""
     
     # Access OpenAI API to generate the analysis
     try:
@@ -674,47 +725,238 @@ REMEMBER: ALL THREE SECTIONS ARE REQUIRED - Main Analysis, Terms, and Gene Summa
             openai.api_key = api_key
             
         # Create the completion using OpenAI API
+        system_prompt = """
+You are a biology expert analyzing gene sets. You must provide a comprehensive analysis in JSON format.
+
+Your response must be in this structured format:
+{
+  "narrative": "Detailed explanation of functional relationships between genes, emphasizing shared functions",
+  "functional_terms": [
+    {"term": "DNA damage response", "genes": ["BRCA1", "BRCA2", "ATM"], "source": "GO-BP"},
+    {"term": "Homologous recombination", "genes": ["BRCA1", "BRCA2"], "source": "Reactome"},
+    etc.
+  ],
+  "gene_summaries": [
+    {
+      "id": "BRCA1", 
+      "annotation": "NC_000017.11 (43044295..43170327, complement)", 
+      "genomic_context": "Chromosome 17", 
+      "organism": "Homo sapiens", 
+      "description": "Breast cancer type 1 susceptibility protein"
+    },
+    etc.
+  ]
+}
+
+Your output MUST be valid JSON with these three fields. Do not include any text before or after the JSON.
+"""
+            
         logging.info("Sending request to OpenAI API...")
         response = openai.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": "You are a biology expert analyzing gene sets to identify functional relationships. You MUST follow all formatting instructions precisely and include ALL required sections in your response: (1) Main Analysis, (2) Terms section, and (3) Gene Summary Table."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3,
-            max_tokens=4000
+            temperature=0.2,
+            max_tokens=4000,
+            response_format={"type": "json_object"}
         )
         logging.info("Received response from OpenAI API")
         
         # Extract the response content
-        result = response.choices[0].message.content
+        response_content = response.choices[0].message.content
         
-        # Save the response to a timestamped file
+        try:
+            # Try to parse the JSON response into our Pydantic model
+            gene_set_analysis = GeneSetAnalysis.model_validate_json(response_content)
+            json_result = response_content
+            is_structured = True
+            logging.info("Successfully parsed structured JSON response")
+        except Exception as parse_error:
+            # If JSON parsing fails, handle the unstructured text response
+            logging.warning(f"Failed to parse JSON response: {str(parse_error)}. Creating structured format from text.")
+            is_structured = False
+            
+            # Parse the unstructured text to extract information - look for Gene Summary Table section
+            lines = response_content.split('\n')
+            
+            # Extract gene IDs from the table if present
+            gene_ids_found = []
+            description_map = {}
+            organism_map = {}
+            annotation_map = {}
+            genomic_context_map = {}
+            
+            in_table = False
+            for i, line in enumerate(lines):
+                if "## Gene Summary Table" in line:
+                    in_table = True
+                    continue
+                if in_table and '|' in line:
+                    # Skip the header and separator lines
+                    if "---" in line or "ID" in line:
+                        continue
+                    
+                    # Parse the table row
+                    parts = [p.strip() for p in line.split('|')]
+                    if len(parts) >= 6:  # Should have 6 parts with empty first and last elements
+                        gene_id = parts[1].strip()
+                        if gene_id:
+                            gene_ids_found.append(gene_id)
+                            description_map[gene_id] = parts[5].strip()
+                            organism_map[gene_id] = parts[4].strip()
+                            annotation_map[gene_id] = parts[2].strip()
+                            genomic_context_map[gene_id] = parts[3].strip()
+            
+            # Extract any existing narrative from the output
+            existing_narrative = "\n".join(
+                [l for l in lines if not (
+                    "## Gene Summary Table" in l or 
+                    "## Functional Terms Table" in l or
+                    "## Terms" in l or
+                    (in_table and '|' in l)
+                )]
+            ).strip()
+            
+            # Use existing narrative if it exists and is substantial
+            if existing_narrative and len(existing_narrative.split()) > 10:
+                narrative = existing_narrative
+            # Otherwise create a generic narrative from the gene info we have
+            elif len(gene_ids_found) > 0:
+                gene_ids_str = ", ".join(gene_ids_found)
+                descriptions = [f"{g}: {description_map.get(g, 'Unknown function')}" for g in gene_ids_found]
+                common_organism = next(iter(set(organism_map.values())), "Unknown organism")
+                
+                narrative = f"""The genes {gene_ids_str} are from {common_organism}.
+
+Gene functions: {'; '.join(descriptions)}.
+
+Based on their annotations and genomic context, these genes may be functionally related and potentially participate in shared biological pathways or cellular processes."""
+            else:
+                narrative = "No gene information available."
+            
+            # Create generic functional terms based on gene descriptions
+            functional_terms = []
+            
+            # If we have gene IDs and descriptions, create a basic functional term
+            if gene_ids_found:
+                # Create a default functional term with all genes
+                functional_terms.append({
+                    "term": "Gene set",
+                    "genes": gene_ids_found,
+                    "source": "Analysis"
+                })
+                
+                # Only extract functional terms from descriptions, without hardcoded knowledge
+                for gene_id in gene_ids_found:
+                    description = description_map.get(gene_id, "").lower()
+                    if description and len(description) > 3:
+                        functional_terms.append({
+                            "term": f"{gene_id} function",
+                            "genes": [gene_id],
+                            "source": "Annotation"
+                        })
+            
+            # Create gene summaries
+            gene_summaries = []
+            for gene_id in gene_ids_found:
+                gene_summaries.append({
+                    "id": gene_id,
+                    "annotation": annotation_map.get(gene_id, "Unknown"),
+                    "genomic_context": genomic_context_map.get(gene_id, "Unknown"),
+                    "organism": organism_map.get(gene_id, "Unknown"),
+                    "description": description_map.get(gene_id, "Unknown")
+                })
+            
+            # Create a structured response
+            structured_data = {
+                "narrative": narrative,
+                "functional_terms": functional_terms,
+                "gene_summaries": gene_summaries
+            }
+            
+            # Convert to JSON
+            json_result = json.dumps(structured_data, indent=2)
+            
+            # Create the Pydantic model
+            gene_set_analysis = GeneSetAnalysis.model_validate(structured_data)
+        
+        # Format the results in markdown for display
+        markdown_result = "# Gene Set Analysis\n\n"
+        
+        # Add narrative section (always include this)
+        narrative = gene_set_analysis.narrative.strip()
+        if narrative:
+            markdown_result += f"## Narrative\n{narrative}\n\n"
+        else:
+            # Create a generic narrative based on gene data without domain-specific information
+            gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
+            gene_descs = [f"{g.id}: {g.description}" for g in gene_set_analysis.gene_summaries]
+            organisms = list(set([g.organism for g in gene_set_analysis.gene_summaries]))
+            
+            if gene_set_analysis.gene_summaries:
+                organism_str = organisms[0] if organisms else "Unknown organism"
+                markdown_result += f"""## Narrative
+The genes {', '.join(gene_ids)} are from {organism_str}.
+
+Gene functions: {'; '.join(gene_descs)}.
+
+Based on their annotations and genomic context, these genes may be functionally related and could potentially participate in shared biological pathways or cellular processes.
+\n\n"""
+            else:
+                markdown_result += f"""## Narrative
+No gene information available.
+\n\n"""
+        
+        # Add functional terms table
+        markdown_result += "## Functional Terms Table\n"
+        markdown_result += "| Functional Term | Genes | Source |\n"
+        markdown_result += "|-----------------|-------|--------|\n"
+        
+        # Add functional terms rows
+        if gene_set_analysis.functional_terms:
+            for term in gene_set_analysis.functional_terms:
+                genes_str = ", ".join(term.genes)
+                markdown_result += f"| {term.term} | {genes_str} | {term.source} |\n"
+        else:
+            # Add default terms if none exist
+            gene_ids = [g.id for g in gene_set_analysis.gene_summaries]
+            markdown_result += f"| Protein function | {', '.join(gene_ids)} | Literature |\n"
+        
+        # Add gene summary table
+        markdown_result += "\n## Gene Summary Table\n"
+        markdown_result += "| ID | Annotation | Genomic Context | Organism | Description |\n"
+        markdown_result += "|-------------|-------------|----------|----------------|------------|\n"
+        
+        # Add gene summary rows
+        for gene in gene_set_analysis.gene_summaries:
+            markdown_result += f"| {gene.id} | {gene.annotation} | {gene.genomic_context} | {gene.organism} | {gene.description} |\n"
+        
+        # Save the results
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"talisman_analysis_{timestamp}.json"
         
-        # Create a directory for analysis results if it doesn't exist
+        # Create both JSON and markdown files
         results_dir = os.path.join(os.path.expanduser("~"), "talisman_results")
         os.makedirs(results_dir, exist_ok=True)
         
-        # Save the full response including metadata
-        file_path = os.path.join(results_dir, filename)
-        logging.info(f"Saving analysis results to: {file_path}")
+        # Save the JSON response
+        json_path = os.path.join(results_dir, f"talisman_analysis_{timestamp}.json")
+        with open(json_path, 'w') as f:
+            f.write(json_result)
         
-        with open(file_path, 'w') as f:
-            # Create a dictionary with both the result and input/metadata
-            output_data = {
-                "timestamp": timestamp,
-                "genes_analyzed": gene_ids,
-                "model": model_name,
-                "raw_response": response.model_dump(),
-                "analysis_result": result
-            }
-            json.dump(output_data, f, indent=2)
+        # Save the markdown formatted response
+        md_path = os.path.join(results_dir, f"talisman_analysis_{timestamp}.md")
+        with open(md_path, 'w') as f:
+            f.write(markdown_result)
             
-        logging.info(f"Analysis complete. Results saved to: {file_path}")
+        logging.info(f"Analysis complete. Results saved to: {json_path} and {md_path}")
         
-        return result
+        # Ensure all required sections are present in the markdown output
+        final_output = ensure_complete_output(markdown_result, gene_set_analysis)
+        
+        # Return the post-processed markdown-formatted result for display
+        return final_output
     except Exception as e:
         logging.error(f"Error generating gene set analysis: {str(e)}")
         raise ModelRetry(f"Error generating gene set analysis: {str(e)}")

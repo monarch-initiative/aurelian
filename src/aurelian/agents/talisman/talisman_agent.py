@@ -1,5 +1,6 @@
 """
 Agent for working with gene information using the UniProt API and NCBI Entrez.
+Provides structured information in the form of Narrative, Functional Terms Table, and Gene Summary Table.
 """
 from pydantic_ai import Agent
 
@@ -70,38 +71,54 @@ The analysis will cover multiple types of relationships:
 - Physical interactions
 - Genetic interactions
 
-IMPORTANT: For gene set analysis, ALWAYS include a distinct section titled "## Terms" 
-that contains a semicolon-delimited list of functional terms relevant to the gene set, 
-ordered by relevance. These terms should include:
-- Gene Ontology biological process terms (e.g., DNA repair, oxidative phosphorylation, signal transduction)
-- Molecular function terms (e.g., kinase activity, DNA binding, transporter activity)
-- Cellular component/localization terms (e.g., nucleus, plasma membrane, mitochondria)
-- Pathway names (e.g., glycolysis, TCA cycle, MAPK signaling)
-- Co-regulation terms (e.g., stress response regulon, heat shock response)
-- Interaction networks (e.g., protein complex formation, signaling cascade)
-- Metabolic process terms (e.g., fatty acid synthesis, amino acid metabolism)
-- Regulatory mechanisms (e.g., transcriptional regulation, post-translational modification)
-- Disease associations (if relevant, e.g., virulence, pathogenesis, antibiotic resistance)
-- Structural and functional domains/motifs (e.g., helix-turn-helix, zinc finger)
+For gene set analysis, your output MUST always include three distinct sections:
 
-Example of Terms section:
-## Terms
-DNA damage response; p53 signaling pathway; apoptosis; cell cycle regulation; tumor suppression; DNA repair; protein ubiquitination; transcriptional regulation; nuclear localization; cancer predisposition
+1. First, a "## Narrative" section providing a concise explanation of the functional and categorical relationships between the genes. This should:
+   - Prioritize explanations involving most or all genes in the set
+   - Refer to specific subsets of genes when discussing specialized functions
+   - Highlight the most significant shared pathways, processes, or disease associations
+   - Be clear, concise, and focused on biological meaning
 
-IMPORTANT: After the Terms section, ALWAYS include a "## Gene Summary Table" with a markdown table 
-summarizing the genes analyzed, with the following columns in this exact order:
-- ID: The gene identifier (same as Gene Symbol)
-- Annotation: Genomic coordinates or accession with position information
-- Genomic Context: Information about the genomic location (chromosome, plasmid, etc.)
-- Organism: The organism the gene belongs to
-- Description: The protein/gene function description
+2. Second, a "## Functional Terms Table" that presents key functional terms in a tabular format with these columns:
+   - Functional Term: The biological term or concept (e.g., DNA repair, kinase activity)
+   - Genes: The genes associated with this term (comma-separated list)
+   - Source: The likely source database or ontology (e.g., GO-BP, KEGG, Reactome, GO-MF, GO-CC, Disease)
+
+The functional terms should include various types:
+- Gene Ontology biological process terms (e.g., DNA repair, oxidative phosphorylation)
+- Molecular function terms (e.g., kinase activity, DNA binding)
+- Cellular component/localization terms (e.g., nucleus, plasma membrane)
+- Pathway names (e.g., glycolysis, MAPK signaling)
+- Disease associations (if relevant)
+- Structural and functional domains/motifs (if relevant)
+
+Example of Functional Terms Table:
+## Functional Terms Table
+| Functional Term | Genes | Source |
+|-----------------|-------|--------|
+| DNA damage response | BRCA1, BRCA2, ATM | GO-BP |
+| Homologous recombination | BRCA1, BRCA2 | Reactome |
+| Tumor suppression | BRCA1, BRCA2, ATM | Disease |
+| Nuclear localization | BRCA1, BRCA2, ATM | GO-CC |
+| Kinase activity | ATM | GO-MF |
+| PARP inhibitor sensitivity | BRCA1, BRCA2, PARP1 | Pathway |
+
+3. Third, a "## Gene Summary Table" with a markdown table summarizing the genes analyzed, 
+with the following columns in this exact order:
+   - ID: The gene identifier (same as Gene Symbol)
+   - Annotation: Genomic coordinates or accession with position information
+   - Genomic Context: Information about the genomic location (chromosome, plasmid, etc.)
+   - Organism: The organism the gene belongs to
+   - Description: The protein/gene function description
 
 Example of Gene Summary Table:
 ## Gene Summary Table
 | ID | Annotation | Genomic Context | Organism | Description |
 |-------------|-------------|----------|----------------|------------|
 | BRCA1 | NC_000017.11 (43044295..43125483) | Chromosome 17 | Homo sapiens | Breast cancer type 1 susceptibility protein |
-| TP53 | NC_000017.11 (7668402..7687550) | Chromosome 17 | Homo sapiens | Tumor suppressor protein |
+| BRCA2 | NC_000013.11 (32315474..32400266) | Chromosome 13 | Homo sapiens | Breast cancer type 2 susceptibility protein |
+| ATM | NC_000011.10 (108222484..108369102) | Chromosome 11 | Homo sapiens | ATM serine/threonine kinase |
+| PARP1 | NC_000001.11 (226360251..226408516) | Chromosome 1 | Homo sapiens | Poly(ADP-ribose) polymerase 1 |
 
 For bacterial genes, the table format would be:
 | ID | Annotation | Genomic Context | Organism | Description |
@@ -123,4 +140,4 @@ talisman_agent = Agent(
 talisman_agent.tool(get_gene_description)
 talisman_agent.tool(get_gene_descriptions)
 talisman_agent.tool(get_genes_from_list)
-talisman_agent.tool(analyze_gene_set)
+#talisman_agent.tool(analyze_gene_set)
