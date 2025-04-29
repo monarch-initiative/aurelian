@@ -1640,11 +1640,12 @@ starting an individual UI.</p>
 <p>The Talisman Agent retrieves descriptions for gene identifiers using UniProt and NCBI Entrez.
 It can process a single gene, protein ID, or a list of genes and returns detailed information.
 It also can analyze relationships between multiple genes to identify functional connections.</p>
-<p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
+<p>Run with --list and --taxon options for direct mode or with --ui for interactive chat mode.
+The taxon/species parameter is required to provide proper context for gene analysis.</p>
 <p>Examples:
-    aurelian talisman TP53
-    aurelian talisman "TP53, MDM2"
-    aurelian talisman "BRCA1, BRCA2, ATM, PARP1"</p>
+    aurelian talisman --list "TP53" --taxon "Homo sapiens"
+    aurelian talisman --list "TP53, MDM2" --taxon "Homo sapiens"
+    aurelian talisman --list "DVUA0001, DVUA0002" --taxon "Desulfovibrio vulgaris"</p>
 <p><strong>Usage:</strong></p>
 <div class="highlight"><pre><span></span><code>main talisman [OPTIONS] [QUERY]...
 </code></pre></div>
@@ -1657,6 +1658,9 @@ It also can analyze relationships between multiple genes to identify functional 
                              share]
   -p, --server-port INTEGER  The port to run the UI server on.  [default:
                              7860]
+  -l, --list TEXT            Comma-separated list of gene identifiers
+  -t, --taxon TEXT           Species/taxon the genes belong to (e.g., &#39;Homo
+                             sapiens&#39;, &#39;Desulfovibrio vulgaris&#39;)  [required]
   --help                     Show this message and exit.
 </code></pre></div>
 <h2 id="ubergraph">ubergraph</h2>
