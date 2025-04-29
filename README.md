@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/932483388.svg)](https://doi.org/10.5281/zenodo.15299996)
 
 # Aurelian: Agentic Universal Research Engine for Literature, Integration, Annotation, and Navigation
 
