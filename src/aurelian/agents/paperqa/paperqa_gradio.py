@@ -10,6 +10,31 @@ from .paperqa_agent import paperqa_agent
 from .paperqa_config import PaperQADependencies, get_config
 
 
+async def get_info(query: str, history: List[str], deps: PaperQADependencies, model=None) -> str:
+    """
+    Process a query using the PaperQA agent.
+    
+    Args:
+        query: The user query
+        history: The conversation history
+        deps: The dependencies for the agent
+        model: Optional model override
+        
+    Returns:
+        The agent's response
+    """
+    print(f"QUERY: {query}")
+    print(f"HISTORY: {history}")
+    
+    if history:
+        query += "\n\n## Previous Conversation:\n"
+        for h in history:
+            query += f"\n{h}"
+    
+    result = await paperqa_agent.run(query, deps=deps, model=model)
+    return result.data
+
+
 def chat(deps: Optional[PaperQADependencies] = None, model=None, **kwargs):
     """
     Create a Gradio chat interface for the PaperQA agent.
@@ -22,11 +47,9 @@ def chat(deps: Optional[PaperQADependencies] = None, model=None, **kwargs):
     Returns:
         A Gradio ChatInterface
     """
-    # Initialize dependencies if needed
     if deps is None:
         deps = get_config()
 
-        # Apply any kwargs to the dependencies
         for key, value in kwargs.items():
             if hasattr(deps, key):
                 setattr(deps, key, value)
