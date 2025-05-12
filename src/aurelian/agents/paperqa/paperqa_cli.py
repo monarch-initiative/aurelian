@@ -121,7 +121,8 @@ def ask(query, directory):
             index_files = await index.index_files
 
             if not index_files:
-                raise RuntimeError("No indexed papers found. Run 'aurelian paperqa index' to index papers.")
+                raise RuntimeError("No indexed papers found. Run "
+                                   "'aurelian paperqa index' to index papers.")
 
             click.echo(f"Querying {len(index_files)} papers about: {query}")
             click.echo("This may take a moment...\n")
@@ -131,12 +132,12 @@ def ask(query, directory):
                 settings=settings
             )
 
-            click.echo(f"Answer: {response.answer}")
+            # pretty print references with 80 char line width
+            answer = response.session.context
 
-            if hasattr(response, 'context') and response.context:
-                click.echo("\nSources:")
-                for i, ctx in enumerate(response.context):
-                    click.echo(f"[{i+1}] {ctx.docname}: {ctx.citation or 'No citation'}")
+
+            click.echo(f"Answer: {response.session.answer}" +
+                       f"\n\nReferences: {response.session.references}")
 
         except Exception as e:
             click.echo(f"Error querying papers: {str(e)}")
