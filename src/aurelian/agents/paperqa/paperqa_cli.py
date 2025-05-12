@@ -64,20 +64,18 @@ def index(directory):
 )
 def list(directory):
     """List indexed papers."""
-    config = get_config()
-    if directory:
-        config.paper_directory = directory
+    config=PaperQADependencies(paper_directory=directory)
+    settings = config.set_paperqa_settings(
+        paper_directory=directory
+    )
 
-    paper_dir = config.paper_directory
-    settings = config.set_paperqa_settings()
-
-    if not os.path.exists(paper_dir):
-        click.echo(f"Paper directory does not exist: {paper_dir}")
+    if not os.path.exists(directory):
+        click.echo(f"Paper directory does not exist: {directory}")
         return
 
-    pdf_files = [f for f in os.listdir(paper_dir) if f.lower().endswith('.pdf')]
+    pdf_files = [f for f in os.listdir(directory) if f.lower().endswith('.pdf')]
 
-    click.echo(f"Files in paper directory {paper_dir}:")
+    click.echo(f"Files in paper directory {directory}:")
     for pdf in pdf_files:
         click.echo(f"  - {pdf}")
 
@@ -107,21 +105,13 @@ def list(directory):
 def ask(query, directory):
     """Ask a question about the indexed papers."""
 
-    # set os.environ.get("PAPERQA_PAPER_DIRECTORY")
-    # to the directory provided by the user
-    # or the default directory if not provided
-    if os.environ.get("PAPERQA_PAPER_DIRECTORY") is None:
-        os.environ["PAPERQA_PAPER_DIRECTORY"] = directory if directory else os.getcwd()
+    config = PaperQADependencies(paper_directory=directory)
+    settings = config.set_paperqa_settings(
+        paper_directory=directory
+    )
 
-    config = get_config()
-    if directory:
-        config.paper_directory = directory
-
-    paper_dir = config.paper_directory
-    settings = config.set_paperqa_settings()
-
-    if not os.path.exists(paper_dir):
-        click.echo(f"Paper directory does not exist: {paper_dir}")
+    if not os.path.exists(directory):
+        click.echo(f"Paper directory does not exist: {directory}")
         return
 
     async def run_query():
@@ -131,19 +121,16 @@ def ask(query, directory):
             index_files = await index.index_files
 
             if not index_files:
-                click.echo("No indexed papers found. Run 'aurelian paperqa index' to index papers.")
-                return
+                raise RuntimeError("No indexed papers found. Run 'aurelian paperqa index' to index papers.")
 
             click.echo(f"Querying {len(index_files)} papers about: {query}")
             click.echo("This may take a moment...\n")
 
-            # Call the paperqa agent_query function with the user's query
             response = await agent_query(
                 query=query,
                 settings=settings
             )
 
-            # Print the response in a readable format
             click.echo(f"Answer: {response.answer}")
 
             if hasattr(response, 'context') and response.context:
