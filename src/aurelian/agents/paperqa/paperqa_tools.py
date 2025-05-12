@@ -31,7 +31,7 @@ async def search_papers(
         A simplified response with paper details and metadata
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
 
         if max_papers is not None:
             settings.agent.search_count = max_papers
@@ -65,7 +65,7 @@ async def query_papers(
         The full PQASession object with the answer and context
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
 
         await get_directory_index(settings=settings, build=False)
 
@@ -94,17 +94,17 @@ async def build_index(
         Information about the indexing process
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
         paper_directory = settings.agent.index.paper_directory
-        
+
         os.makedirs(paper_directory, exist_ok=True)
-        
+
         pdf_files = []
         if os.path.exists(paper_directory):
             for file in os.listdir(paper_directory):
                 if file.lower().endswith('.pdf'):
                     pdf_files.append(file)
-        
+
         if not pdf_files:
             return {
                 "success": True,
@@ -113,13 +113,13 @@ async def build_index(
                 "indexed_papers": [],
                 "message": f"No PDF files found in {paper_directory}. Add PDFs to this directory before indexing."
             }
-        
+
         try:
             # Force a rebuild of the index
             print(f"Building index for {len(pdf_files)} PDF files in {paper_directory}...")
             index = await get_directory_index(settings=settings, build=True)
             index_files = await index.index_files
-            
+
             if not index_files:
                 # The index is still empty despite finding PDFs - this could be a parsing issue
                 return {
@@ -127,11 +127,11 @@ async def build_index(
                     "paper_directory": paper_directory,
                     "pdf_files_found": pdf_files,
                     "pdf_files_count": len(pdf_files),
-                    "indexed_papers_count": 0, 
+                    "indexed_papers_count": 0,
                     "indexed_papers": [],
                     "message": f"Found {len(pdf_files)} PDF files but none were successfully indexed. This could be due to parsing issues with the PDFs."
                 }
-            
+
             return {
                 "success": True,
                 "paper_directory": paper_directory,
@@ -174,38 +174,38 @@ async def add_paper(
         Information about the added paper
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
-        
+        settings = ctx.deps.set_paperqa_settings()
+
         # Ensure the paper directory exists
         paper_directory = settings.agent.index.paper_directory
         os.makedirs(paper_directory, exist_ok=True)
-        
+
         # For URLs, we need to:
         # 1. Download the PDF
         # 2. Save it to the paper directory
         # 3. Process it with Docs
-        
+
         if path.startswith(("http://", "https://")):
             import requests
             from urllib.parse import urlparse
-            
+
             url_parts = urlparse(path)
             file_name = os.path.basename(url_parts.path)
             if not file_name or not file_name.lower().endswith('.pdf'):
                 file_name = "paper.pdf"
-            
+
             target_path = os.path.join(paper_directory, file_name)
-            
+
             try:
                 response = requests.get(path, stream=True)
                 response.raise_for_status()
-                
+
                 with open(target_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
-                
+
                 print(f"Downloaded {path} to {target_path}")
-                
+
                 docs = Docs()
                 docname = await docs.aadd(
                     path=target_path,
@@ -221,7 +221,7 @@ async def add_paper(
                     citation=citation,
                     settings=settings,
                 )
-                
+
                 # If we successfully added it with aadd_url, try to find where it saved the file
                 if docname and hasattr(docs, 'docs') and docname in docs.docs:
                     doc = docs.docs[docname]
@@ -241,14 +241,14 @@ async def add_paper(
                     full_path = os.path.join(ctx.deps.workdir.location, path)
                     if os.path.exists(full_path):
                         path = full_path
-            
+
             # If the path is outside the paper directory, copy it there
             if os.path.exists(path) and paper_directory not in path:
                 import shutil
                 target_path = os.path.join(paper_directory, os.path.basename(path))
                 if not os.path.exists(target_path):
                     shutil.copy2(path, target_path)
-            
+
             docs = Docs()
             docname = await docs.aadd(
                 path=path,
@@ -258,13 +258,13 @@ async def add_paper(
 
         if docname:
             doc = next((d for d in docs.docs.values() if d.docname == docname), None)
-            
+
             result = {
                 "success": True,
                 "docname": docname,
                 "doc": doc,
             }
-            
+
             if auto_index:
                 try:
                     index_result = await build_index(ctx)
@@ -277,7 +277,7 @@ async def add_paper(
                     result["message"] = f"Paper added but indexing failed: {str(e)}"
             else:
                 result["message"] = "Paper added successfully. Use 'aurelian paperqa index' to rebuild the index to make this paper searchable."
-                
+
             return result
         else:
             return {
@@ -305,7 +305,7 @@ async def add_papers(
         Information about the added papers
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
 
         if not os.path.isdir(directory):
             full_path = os.path.join(ctx.deps.paper_directory, directory)
@@ -379,7 +379,7 @@ async def list_papers(
         Information about all papers in the paper directory
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
         paper_directory = settings.agent.index.paper_directory
 
         pdf_files = []
@@ -387,7 +387,7 @@ async def list_papers(
             for file in os.listdir(paper_directory):
                 if file.lower().endswith('.pdf'):
                     pdf_files.append(file)
-        
+
         indexed_files = []
         try:
             index = await get_directory_index(settings=settings, build=False)
@@ -396,7 +396,7 @@ async def list_papers(
         except Exception as e:
             # Index may not exist yet, which is fine
             pass
-        
+
         return {
             "success": True,
             "paper_directory": paper_directory,
