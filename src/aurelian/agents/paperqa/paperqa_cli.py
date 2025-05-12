@@ -5,7 +5,7 @@ import os
 import asyncio
 import click
 
-from aurelian.agents.paperqa.paperqa_config import get_config
+from aurelian.agents.paperqa.paperqa_config import get_config, PaperQADependencies
 from paperqa.agents.search import get_directory_index
 from paperqa import agent_query
 
@@ -24,8 +24,11 @@ def paperqa_cli():
 )
 def index(directory):
     """Index papers for search and querying."""
-    config = get_config(paper_directory=directory)
-    settings = config.set_paperqa_settings(paper_directory=directory)
+
+    config=PaperQADependencies(paper_directory=directory)
+    settings = config.set_paperqa_settings(
+        paper_directory=directory
+    )
 
     pdf_files = [f for f in os.listdir(directory) if f.lower().endswith('.pdf')]
 

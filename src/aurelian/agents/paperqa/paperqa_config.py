@@ -98,6 +98,8 @@ class PaperQADependencies(HasWorkdir):
         Args:
             paper_directory (str): Directory containing papers to be indexed or queried against.
         """
+        if not os.environ.get("PQA_HOME"):
+            os.environ["PQA_HOME"] = paper_directory
 
         return PQASettings(
             llm=self.llm,
