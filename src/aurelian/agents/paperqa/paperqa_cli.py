@@ -18,7 +18,7 @@ def paperqa_cli():
 
 @paperqa_cli.command()
 @click.option(
-    "--directory", "-d", 
+    "--directory", "-d",
     help="Paper directory (override config)",
 )
 @click.option("--index-location", "-i", help="Paper index location")
@@ -32,7 +32,7 @@ def index(directory, index_location):
 
     # Make index location the same as paper directory if not specified
     if not index_location:
-        index_location = paper_dir
+        index_location = os.path.join(paper_dir + ".pqa/indexes/")
 
     # Set PQA_HOME environment variable to control where PaperQA stores index files
     os.environ["PQA_HOME"] = index_location
@@ -136,9 +136,6 @@ def ask(query, directory, index_location):
                 settings=settings
             )
 
-            answer = response.session.context
-
-
             click.echo(f"Answer: {response.session.answer}" +
                        f"\n\nReferences: {response.session.references}")
 
@@ -153,7 +150,7 @@ def ask(query, directory, index_location):
 
 @paperqa_cli.command()
 @click.option(
-    "--directory", "-d", 
+    "--directory", "-d",
     help="Paper directory (override config)",
 )
 def list(directory):
@@ -161,20 +158,20 @@ def list(directory):
     config = get_config()
     if directory:
         config.paper_directory = directory
-    
+
     paper_dir = config.paper_directory
     settings = config.get_paperqa_settings()
-    
+
     if not os.path.exists(paper_dir):
         click.echo(f"Paper directory does not exist: {paper_dir}")
         return
-    
+
     pdf_files = [f for f in os.listdir(paper_dir) if f.lower().endswith('.pdf')]
-    
+
     click.echo(f"Files in paper directory {paper_dir}:")
     for pdf in pdf_files:
         click.echo(f"  - {pdf}")
-    
+
     async def list_indexed():
         try:
             index = await get_directory_index(settings=settings, build=False)
@@ -184,7 +181,7 @@ def list(directory):
                 click.echo(f"  - {file}")
         except Exception as e:
             click.echo(f"\nNo indexed papers found. Run 'aurelian paperqa index' to index papers.")
-    
+
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(list_indexed())
