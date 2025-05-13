@@ -145,9 +145,8 @@ def ask(query, directory, index_location):
         except Exception as e:
             click.echo(f"Error querying papers: {str(e)}")
 
-    loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(run_query())
+        asyncio.run(run_query())
     except Exception as e:
         click.echo(f"Error: {str(e)}")
 
