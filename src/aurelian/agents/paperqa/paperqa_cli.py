@@ -74,9 +74,8 @@ def index(directory, index_location):
         except Exception as e:
             click.echo(f"Error indexing papers: {str(e)}")
 
-    loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(run_index())
+        asyncio.run(run_index())
     except Exception as e:
         click.echo(f"Error: {str(e)}")
 
