@@ -95,6 +95,23 @@ async def add_paper(path: str, citation: Optional[str] = None) -> Any:
     """
     return await pt.add_paper(ctx(), path, citation)
 
+@mcp.tool()
+async def add_papers(path: str,) -> Any:
+    """
+    Add multiple papers to the collection.
+    Args:
+        path: Path to the paper file or URL
+        citation: Optional citation for the paper
+
+    Returns:
+        Informations about the added papers
+
+    You can add multiple papers by providing its file path (PDF) or a URL to the
+    paper (must be accessible). The paper will be added to your collection for
+    searching and querying.
+    """
+    return await pt.add_papers(ctx(), path)
+
 
 @mcp.tool()
 async def list_papers() -> Any:

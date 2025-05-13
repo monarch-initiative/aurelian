@@ -1,17 +1,83 @@
 """
 Tools for the PaperQA agent.
 """
-import asyncio
 import os
+import logging
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from pydantic_ai import RunContext, ModelRetry
 
-from paperqa import Docs, Settings, agent_query
+from paperqa import Docs, agent_query
 from paperqa.agents.search import get_directory_index
 
-from aurelian.utils.async_utils import run_sync
 from .paperqa_config import PaperQADependencies
+
+
+def create_response(success: bool, paper_directory: str, doc_files: dict,
+                    indexed_files: Optional[dict] = None, **kwargs) -> dict:
+    """Create a standardized response dictionary.
+    
+    Args:
+        success: Whether the operation was successful
+        paper_directory: Path to the paper directory
+        doc_files: Dictionary with document files by type
+        indexed_files: Optional dictionary of indexed files
+        **kwargs: Additional key-value pairs to include in the response
+        
+    Returns:
+        A standardized response dictionary
+    """
+    document_counts = {
+        'total': len(doc_files['all']),
+        'pdf': len(doc_files['pdf']),
+        'txt': len(doc_files['txt']),
+        'html': len(doc_files['html']),
+        'md': len(doc_files['md']),
+    }
+    
+    response = {
+        "success": success,
+        "paper_directory": paper_directory,
+        "document_counts": document_counts,
+    }
+    
+    if indexed_files is not None:
+        response["indexed_chunks_count"] = len(indexed_files)
+        response["indexed_papers"] = list(indexed_files.keys()) if hasattr(indexed_files, 'keys') else []
+    
+    response.update(kwargs)
+    
+    return response
+
+logger = logging.getLogger(__name__)
+
+
+def get_document_files(directory: str) -> Dict[str, List[str]]:
+    """
+    Get all indexable document files in the given directory.
+    
+    Args:
+        directory: Directory to search for document files
+        
+    Returns:
+        dict: Dictionary with file lists by type and a combined list
+    """
+    document_extensions = ['.pdf', '.txt', '.html', '.md']
+    all_files = []
+    
+    dir_path = Path(directory)
+    if dir_path.exists() and dir_path.is_dir():
+        all_files = [f.name for f in dir_path.iterdir() 
+                    if f.is_file() and any(f.name.lower().endswith(ext) for ext in document_extensions)]
+    
+    return {
+        'all': all_files,
+        'pdf': [f for f in all_files if f.lower().endswith('.pdf')],
+        'txt': [f for f in all_files if f.lower().endswith('.txt')],
+        'html': [f for f in all_files if f.lower().endswith('.html')],
+        'md': [f for f in all_files if f.lower().endswith('.md')],
+    }
 
 
 async def search_papers(
@@ -31,23 +97,19 @@ async def search_papers(
         A simplified response with paper details and metadata
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
 
         if max_papers is not None:
             settings.agent.search_count = max_papers
 
-        # Try to build the index if needed
         try:
-            # First try to get the index without building
             index = await get_directory_index(settings=settings, build=False)
             index_files = await index.index_files
-
-            # If we get here, the index exists and has files
-            print(f"Found existing index with {len(index_files)} files")
+            logger.info(f"Found existing index with {len(index_files)} files")
         except Exception as e:
             # If the error is about an empty index, try to build it
             if "was empty, please rebuild it" in str(e):
-                print("Index is empty, attempting to rebuild...")
+                logger.info("Index is empty, attempting to rebuild...")
                 index = await get_directory_index(settings=settings, build=True)
                 index_files = await index.index_files
 
@@ -57,10 +119,8 @@ async def search_papers(
                         "papers": []
                     }
             else:
-                # For other errors, re-raise
                 raise
 
-        # If we get here, we have a valid index
         response = await agent_query(
             query=f"Find scientific papers about: {query}",
             settings=settings
@@ -71,7 +131,6 @@ async def search_papers(
         if "ModelRetry" in str(type(e)):
             raise e
 
-        # For empty index errors, return a more helpful message
         if "was empty, please rebuild it" in str(e):
             return {
                 "message": "No papers are currently indexed. You can add papers using the add_paper function.",
@@ -96,9 +155,8 @@ async def query_papers(
         The full PQASession object with the answer and context
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
 
-        # Try to build the index if needed
         try:
             # First try to get the index without building
             index = await get_directory_index(settings=settings, build=False)
@@ -111,17 +169,14 @@ async def query_papers(
                     "papers": []
                 }
         except Exception as e:
-            # If the error is about an empty index, return a helpful message
             if "was empty, please rebuild it" in str(e):
                 return {
                     "message": "No papers are currently indexed. You can add papers using the add_paper function.",
                     "papers": []
                 }
             else:
-                # For other errors, re-raise
                 raise
 
-        # If we get here, we have a valid index
         response = await agent_query(
             query=query,
             settings=settings
@@ -132,7 +187,6 @@ async def query_papers(
         if "ModelRetry" in str(type(e)):
             raise e
 
-        # For empty index errors, return a more helpful message
         if "was empty, please rebuild it" in str(e):
             return {
                 "message": "No papers are currently indexed. You can add papers using the add_paper function.",
@@ -155,61 +209,62 @@ async def build_index(
         Information about the indexing process
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+
+        settings = ctx.deps.set_paperqa_settings()
         paper_directory = settings.agent.index.paper_directory
 
         os.makedirs(paper_directory, exist_ok=True)
 
-        pdf_files = []
-        if os.path.exists(paper_directory):
-            for file in os.listdir(paper_directory):
-                if file.lower().endswith('.pdf'):
-                    pdf_files.append(file)
+        doc_files = get_document_files(paper_directory)
 
-        if not pdf_files:
-            return {
-                "success": True,
-                "paper_directory": paper_directory,
-                "indexed_papers_count": 0,
-                "indexed_papers": [],
-                "message": f"No PDF files found in {paper_directory}. Add PDFs to this directory before indexing."
-            }
+        if not doc_files['all']:
+            return create_response(
+                success=True,
+                paper_directory=paper_directory,
+                doc_files=doc_files,
+                indexed_files={},
+                message=f"No indexable documents found in {paper_directory}. Add documents (PDF, TXT, HTML, MD) to this directory before indexing."
+            )
 
         try:
-            # Force a rebuild of the index
-            print(f"Building index for {len(pdf_files)} PDF files in {paper_directory}...")
+            logger.info(f"Building index for {len(doc_files['all'])} documents in {paper_directory}:")
+            if doc_files['pdf']:
+                logger.info(f"  - {len(doc_files['pdf'])} PDF files")
+            if doc_files['txt']:
+                logger.info(f"  - {len(doc_files['txt'])} text files")
+            if doc_files['html']:
+                logger.info(f"  - {len(doc_files['html'])} HTML files")
+            if doc_files['md']:
+                logger.info(f"  - {len(doc_files['md'])} Markdown files")
+            
             index = await get_directory_index(settings=settings, build=True)
             index_files = await index.index_files
 
             if not index_files:
-                # The index is still empty despite finding PDFs - this could be a parsing issue
-                return {
-                    "success": True,
-                    "paper_directory": paper_directory,
-                    "pdf_files_found": pdf_files,
-                    "pdf_files_count": len(pdf_files),
-                    "indexed_papers_count": 0,
-                    "indexed_papers": [],
-                    "message": f"Found {len(pdf_files)} PDF files but none were successfully indexed. This could be due to parsing issues with the PDFs."
-                }
+                return create_response(
+                    success=True,
+                    paper_directory=paper_directory,
+                    doc_files=doc_files,
+                    indexed_files={},
+                    documents_found=doc_files,
+                    message=f"Found {len(doc_files['all'])} documents but none were successfully indexed. This could be due to parsing issues with the documents."
+                )
 
-            return {
-                "success": True,
-                "paper_directory": paper_directory,
-                "pdf_files_count": len(pdf_files),
-                "indexed_papers_count": len(index_files),
-                "indexed_papers": list(index_files.keys()),
-                "message": f"Successfully indexed {len(index_files)} papers out of {len(pdf_files)} PDF files."
-            }
+            return create_response(
+                success=True,
+                paper_directory=paper_directory,
+                doc_files=doc_files,
+                indexed_files=index_files,
+                message=f"Successfully indexed {len(index_files)} document chunks from {len(doc_files['all'])} files."
+            )
         except Exception as e:
-            return {
-                "success": False,
-                "paper_directory": paper_directory,
-                "pdf_files_found": pdf_files,
-                "pdf_files_count": len(pdf_files),
-                "error": str(e),
-                "message": f"Error indexing papers: {str(e)}"
-            }
+            return create_response(
+                success=False,
+                paper_directory=paper_directory,
+                doc_files=doc_files,
+                message=f"Error indexing documents: {str(e)}",
+                error=str(e)
+            )
     except Exception as e:
         if "ModelRetry" in str(type(e)):
             raise e
@@ -235,12 +290,11 @@ async def add_paper(
         Information about the added paper
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
 
-        # Ensure the paper directory exists
         paper_directory = settings.agent.index.paper_directory
         os.makedirs(paper_directory, exist_ok=True)
-
+        
         # For URLs, we need to:
         # 1. Download the PDF
         # 2. Save it to the paper directory
@@ -265,7 +319,7 @@ async def add_paper(
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
 
-                print(f"Downloaded {path} to {target_path}")
+                logger.info(f"Downloaded {path} to {target_path}")
 
                 docs = Docs()
                 docname = await docs.aadd(
@@ -275,7 +329,7 @@ async def add_paper(
                 )
             except Exception as e:
                 # If download fails, fall back to docs.aadd_url
-                print(f"Download failed: {str(e)}, falling back to docs.aadd_url")
+                logger.warning(f"Download failed: {str(e)}, falling back to docs.aadd_url")
                 docs = Docs()
                 docname = await docs.aadd_url(
                     url=path,
@@ -291,7 +345,7 @@ async def add_paper(
                         target_path = os.path.join(paper_directory, f"{docname}.pdf")
                         if not os.path.exists(target_path):
                             shutil.copy2(doc.filepath, target_path)
-                            print(f"Copied from {doc.filepath} to {target_path}")
+                            logger.info(f"Copied from {doc.filepath} to {target_path}")
         else:
             # For file paths, copy to paper directory if needed
             if not os.path.isabs(path):
@@ -354,6 +408,8 @@ async def add_paper(
 async def add_papers(
         ctx: RunContext[PaperQADependencies],
         directory: str,
+        citation: Optional[str] = None,
+        auto_index: bool = True,
 ) -> Any:
     """
     Add multiple papers from a directory to the collection.
@@ -361,66 +417,101 @@ async def add_papers(
     Args:
         ctx: The run context
         directory: Path to the directory containing papers
+        citation: Optional citation format to use for all papers (paper filename will be appended)
+        auto_index: Whether to automatically rebuild the index after adding the papers
 
     Returns:
         Information about the added papers
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
+        paper_directory = settings.agent.index.paper_directory
+        os.makedirs(paper_directory, exist_ok=True)
 
-        if not os.path.isdir(directory):
-            full_path = os.path.join(ctx.deps.paper_directory, directory)
-            if os.path.isdir(full_path):
-                directory = full_path
-            else:
-                full_path = os.path.join(ctx.deps.workdir.location, directory)
-                if os.path.isdir(full_path):
-                    directory = full_path
-                else:
-                    return {
-                        "success": False,
-                        "message": f"Directory not found: {directory}"
-                    }
+        if not Path(directory).is_dir():
+            return create_response(
+                success=False,
+                paper_directory=paper_directory,
+                doc_files={"all": [], "pdf": [], "txt": [], "html": [], "md": []}
+            )
 
-        pdf_files = [f for f in os.listdir(directory) if f.lower().endswith('.pdf')]
+        doc_files = get_document_files(directory)
 
-        if not pdf_files:
-            return {
-                "success": False,
-                "message": f"No PDF files found in directory: {directory}"
-            }
+        if not doc_files['all']:
+            return create_response(
+                success=False,
+                paper_directory=paper_directory,
+                doc_files=doc_files
+            )
+
+        logger.info(f"Found {len(doc_files['all'])} documents in {directory}:")
+        if doc_files['pdf']:
+            logger.info(f"  - {len(doc_files['pdf'])} PDF files")
+        if doc_files['txt']:
+            logger.info(f"  - {len(doc_files['txt'])} text files")
+        if doc_files['html']:
+            logger.info(f"  - {len(doc_files['html'])} HTML files")
+        if doc_files['md']:
+            logger.info(f"  - {len(doc_files['md'])} Markdown files")
 
         docs = Docs()
         added_papers = []
 
-        for pdf_file in pdf_files:
-            file_path = os.path.join(directory, pdf_file)
+        for doc_file in doc_files['all']:
+            file_path = os.path.join(directory, doc_file)
             try:
+                logger.info(f"Adding document: {file_path}")
+                
+                doc_citation = None
+                if citation:
+                    doc_citation = f"{citation} - {doc_file}"
+                
+                if Path(file_path).exists() and paper_directory not in file_path:
+                    import shutil
+                    target_path = os.path.join(paper_directory, os.path.basename(file_path))
+                    if not Path(target_path).exists():
+                        shutil.copy2(file_path, target_path)
+                        logger.info(f"Copied {file_path} to {target_path}")
+                
                 docname = await docs.aadd(
                     path=file_path,
+                    citation=doc_citation,
                     settings=settings,
                 )
                 if docname:
                     doc = next((d for d in docs.docs.values() if d.docname == docname), None)
                     added_papers.append({
-                        "file": pdf_file,
+                        "file": doc_file,
                         "docname": docname,
+                        "citation": doc_citation,
                         "doc": doc
                     })
+                    logger.info(f"Successfully added document: {doc_file}")
             except Exception as e:
-                print(f"Error adding {file_path}: {e}")
+                logger.error(f"Error adding {file_path}: {e}")
 
-        # Update the index with the added papers
-        # This will trigger a reindex of the paper directory
-        await get_directory_index(settings=settings, build=True)
-
-        return {
-            "success": True,
-            "directory": directory,
-            "papers_found": len(pdf_files),
-            "papers_added": len(added_papers),
-            "added_papers": added_papers
-        }
+        index_result = None
+        if auto_index and added_papers:
+            try:
+                index_result = await build_index(ctx)
+                logger.info(f"Index rebuilt with {len(index_result.get('indexed_papers', []))} papers")
+            except Exception as e:
+                logger.error(f"Error rebuilding index: {e}")
+                index_result = {"success": False, "error": str(e)}
+        
+        response = create_response(
+            success=True,
+            paper_directory=paper_directory,
+            doc_files=doc_files,
+            message=f"Successfully added {len(added_papers)} documents out of {len(doc_files['all'])}",
+            documents_added=len(added_papers),
+            added_documents=added_papers
+        )
+        
+        if index_result:
+            response["index_result"] = index_result
+            
+        return response
     except Exception as e:
         if "ModelRetry" in str(type(e)):
             raise e
@@ -440,33 +531,35 @@ async def list_papers(
         Information about all papers in the paper directory
     """
     try:
-        settings = ctx.deps.get_paperqa_settings()
+        settings = ctx.deps.set_paperqa_settings()
         paper_directory = settings.agent.index.paper_directory
 
-        pdf_files = []
-        if os.path.exists(paper_directory):
-            for file in os.listdir(paper_directory):
-                if file.lower().endswith('.pdf'):
-                    pdf_files.append(file)
-
+        doc_files = get_document_files(paper_directory)
+        
         indexed_files = []
         try:
             index = await get_directory_index(settings=settings, build=False)
             index_files = await index.index_files
             indexed_files = list(index_files.keys())
-        except Exception as e:
-            # Index may not exist yet, which is fine
-            pass
+            logger.info(f"Found {len(indexed_files)} indexed document chunks")
+        except Exception:
+            logger.info("No index found or index is empty")
 
-        return {
-            "success": True,
-            "paper_directory": paper_directory,
-            "files_in_directory": pdf_files,
-            "files_in_directory_count": len(pdf_files),
-            "indexed_files": indexed_files,
-            "indexed_files_count": len(indexed_files),
-            "note": "To search papers, they must be both in the paper directory AND indexed. If there are files in the directory but not indexed, use the CLI command 'aurelian paperqa index' to index them."
-        }
+        return create_response(
+            success=True,
+            paper_directory=paper_directory,
+            doc_files=doc_files,
+            indexed_files=indexed_files,
+            message=f"Found {len(doc_files['all'])} documents and {len(indexed_files)} indexed chunks",
+            files_in_directory=doc_files['all'],
+            files_by_type={
+                "pdf": doc_files['pdf'],
+                "txt": doc_files['txt'],
+                "html": doc_files['html'],
+                "md": doc_files['md']
+            },
+            note="To search papers, they must be both in the paper directory AND indexed. If there are files in the directory but not indexed, use the CLI command 'aurelian paperqa index -d <directory>' to index them."
+        )
     except Exception as e:
         if "ModelRetry" in str(type(e)):
             raise e

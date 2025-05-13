@@ -21,7 +21,6 @@ from aurelian.dependencies.workdir import HasWorkdir, WorkDir
 class PaperQADependencies(HasWorkdir):
     """Configuration for the PaperQA agent."""
 
-    # Paper directory settings
     paper_directory: str = field(
         default_factory=lambda: os.getcwd(),
         metadata={"description": "Directory containing papers to be searched"}
@@ -31,7 +30,6 @@ class PaperQADependencies(HasWorkdir):
         metadata={"description": "Optional name for the search index. If None, it will be generated based on settings."}
     )
 
-    # Model settings - These are PaperQA defaults
     llm: str = field(
         default="gpt-4.1-2025-04-14",
         metadata={"description": "LLM to use for queries and answer generation. Default is gpt-4.1-2025-04-14."}
@@ -49,13 +47,11 @@ class PaperQADependencies(HasWorkdir):
         metadata={"description": "Temperature for LLM generation. Default is 0.1."}
     )
 
-    # Search settings - PaperQA default
     search_count: int = field(
         default=8,
         metadata={"description": "Number of papers to retrieve in searches. Default is 8."}
     )
 
-    # Answer settings - PaperQA defaults
     evidence_k: int = field(
         default=10,
         metadata={"description": "Number of evidence pieces to retrieve. Default is 10."}
@@ -69,7 +65,6 @@ class PaperQADependencies(HasWorkdir):
         metadata={"description": "Maximum number of concurrent requests to LLMs. Default is 4."}
     )
 
-    # Parsing settings - PaperQA defaults
     chunk_size: int = field(
         default=5000,
         metadata={"description": "Size of document chunks for embedding. Default is 5000."}
@@ -86,7 +81,7 @@ class PaperQADependencies(HasWorkdir):
         if self.workdir is None:
             self.workdir = WorkDir()
 
-    def get_paperqa_settings(self) -> PQASettings:
+    def set_paperqa_settings(self) -> PQASettings:
         """
         Convert to PaperQA Settings object.
 
@@ -116,6 +111,7 @@ class PaperQADependencies(HasWorkdir):
                 index=IndexSettings(
                     name=self.index_name,
                     paper_directory=self.paper_directory,
+                    recurse_subdirectories=False,
                 ),
             ),
         )

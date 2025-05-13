@@ -1,6 +1,8 @@
 """
 Gradio interface for the PaperQA agent.
 """
+import os
+import logging
 from typing import List, Optional, Any
 
 import gradio as gr
@@ -8,6 +10,8 @@ import gradio as gr
 from aurelian.utils.async_utils import run_sync
 from .paperqa_agent import paperqa_agent
 from .paperqa_config import PaperQADependencies, get_config
+
+logger = logging.getLogger(__name__)
 
 
 async def get_info(query: str, history: List[str], deps: PaperQADependencies, **kwargs) -> str:
@@ -23,8 +27,8 @@ async def get_info(query: str, history: List[str], deps: PaperQADependencies, **
     Returns:
         The agent's response
     """
-    print(f"QUERY: {query}")
-    print(f"HISTORY: {history}")
+    logger.info(f"QUERY: {query}")
+    logger.debug(f"HISTORY: {history}")
     
     if history:
         query += "\n\n## Previous Conversation:\n"
@@ -54,6 +58,12 @@ def chat(deps: Optional[PaperQADependencies] = None, model=None, **kwargs):
             if hasattr(deps, key):
                 setattr(deps, key, value)
 
+    paper_dir = os.path.join(os.getcwd(), "pqa_source")
+    os.makedirs(paper_dir, exist_ok=True)
+    deps.paper_directory = paper_dir
+    os.environ["PQA_HOME"] = paper_dir
+    print(f"Using dedicated papers directory at: {paper_dir}")
+
     def get_info_wrapper(query: str, history: List[str]) -> str:
         """Wrapper for the async get_info function."""
         import asyncio
@@ -66,11 +76,15 @@ def chat(deps: Optional[PaperQADependencies] = None, model=None, **kwargs):
         description="""This assistant helps you search and analyze scientific papers. You can:
         - Search for papers on a topic
         - Ask questions about the papers in the repository
-        - Add specific papers by path or URL (aurelian/tests/data/3_pdfs/Barthélemy et al. - 2020 - Blood plasma phosphorylated-tau isoforms track CNS.pdf
-        - List all papers in the collection""",
+        - Add specific papers by path or URL:  (if paths, use absolute paths!)"
+        - Add multiple papers from a directory: (use absolute paths!)"
+        - List all papers in the collection
+        
+        Supported document types: PDF, TXT, HTML, and Markdown files""",
         examples=[
             ["Search for papers on CRISPR gene editing"],
             ["What are the main challenges in CRISPR gene editing?"],
             ["What is the relationship between CRISPR and Cas9?"],
+            ["List all the indexed papers"],
         ],
     )
