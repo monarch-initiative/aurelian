@@ -21,7 +21,7 @@ __all__ = [
     "search_papers",
     "query_papers",
     "add_paper",
-    "add_papers"
+    "add_papers",
     "list_papers",
     "chat",
 ]
