@@ -32,7 +32,7 @@ PAPERQA_SYSTEM_PROMPT = """
                         """
 
 paperqa_agent = Agent(
-    model="openai:gpt-3.5-turbo",
+    model="openai:gpt-4o-2024-11-20",
     deps_type=PaperQADependencies,
     result_type=str,
     system_prompt=PAPERQA_SYSTEM_PROMPT,

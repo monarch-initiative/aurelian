@@ -11,7 +11,7 @@ from paperqa.settings import (
     ParsingSettings,
     PromptSettings,
     AgentSettings,
-    IndexSettings,
+    IndexSettings, Settings,
 )
 
 from aurelian.dependencies.workdir import HasWorkdir, WorkDir
@@ -33,12 +33,12 @@ class PaperQADependencies(HasWorkdir):
 
     # Model settings - These are PaperQA defaults
     llm: str = field(
-        default="gpt-4o-2024-11-20",
-        metadata={"description": "LLM to use for queries and answer generation. Default is gpt-4o-2024-11-20."}
+        default="gpt-4.1-2025-04-14",
+        metadata={"description": "LLM to use for queries and answer generation. Default is gpt-4.1-2025-04-14."}
     )
     summary_llm: str = field(
-        default="gpt-4o-2024-11-20",
-        metadata={"description": "LLM to use for summarization. Default is gpt-4o-2024-11-20."}
+        default="gpt-4.1-2025-04-14",
+        metadata={"description": "LLM to use for summarization. Default is gpt-4.1-2025-04-14."}
     )
     embedding: str = field(
         default="text-embedding-3-small",
@@ -138,20 +138,9 @@ def get_config() -> PaperQADependencies:
             deps.evidence_k = 15  # Retrieve more evidence
             ```
     """
-    paper_directory = os.environ.get("PAPERQA_PAPER_DIRECTORY", os.getcwd())
-
     workdir_path = os.environ.get("AURELIAN_WORKDIR", None)
     workdir = WorkDir(location=workdir_path) if workdir_path else None
 
-    # Get embedding model from environment if available
-    embedding = os.environ.get("PAPERQA_EMBEDDING", "text-embedding-3-small")
-
-    # Get LLM from environment if available
-    llm = os.environ.get("PAPERQA_LLM", "gpt-4o-2024-11-20")
-
     return PaperQADependencies(
-        paper_directory=paper_directory,
         workdir=workdir,
-        embedding=embedding,
-        llm=llm,
     )
