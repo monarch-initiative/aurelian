@@ -15,9 +15,9 @@ from .paperqa_config import PaperQADependencies
 
 
 async def search_papers(
-    ctx: RunContext[PaperQADependencies],
-    query: str,
-    max_papers: Optional[int] = None,
+        ctx: RunContext[PaperQADependencies],
+        query: str,
+        max_papers: Optional[int] = None,
 ) -> Any:
     """
     Search for papers relevant to the query using PaperQA.
@@ -31,13 +31,36 @@ async def search_papers(
         A simplified response with paper details and metadata
     """
     try:
-        settings = ctx.deps.set_paperqa_settings()
+        settings = ctx.deps.get_paperqa_settings()
 
         if max_papers is not None:
             settings.agent.search_count = max_papers
 
-        await get_directory_index(settings=settings, build=False)
+        # Try to build the index if needed
+        try:
+            # First try to get the index without building
+            index = await get_directory_index(settings=settings, build=False)
+            index_files = await index.index_files
 
+            # If we get here, the index exists and has files
+            print(f"Found existing index with {len(index_files)} files")
+        except Exception as e:
+            # If the error is about an empty index, try to build it
+            if "was empty, please rebuild it" in str(e):
+                print("Index is empty, attempting to rebuild...")
+                index = await get_directory_index(settings=settings, build=True)
+                index_files = await index.index_files
+
+                if not index_files:
+                    return {
+                        "message": "No papers are currently indexed. You can add papers using the add_paper function.",
+                        "papers": []
+                    }
+            else:
+                # For other errors, re-raise
+                raise
+
+        # If we get here, we have a valid index
         response = await agent_query(
             query=f"Find scientific papers about: {query}",
             settings=settings
@@ -47,12 +70,20 @@ async def search_papers(
     except Exception as e:
         if "ModelRetry" in str(type(e)):
             raise e
+
+        # For empty index errors, return a more helpful message
+        if "was empty, please rebuild it" in str(e):
+            return {
+                "message": "No papers are currently indexed. You can add papers using the add_paper function.",
+                "papers": []
+            }
+
         raise ModelRetry(f"Error searching papers: {str(e)}")
 
 
 async def query_papers(
-    ctx: RunContext[PaperQADependencies],
-    query: str,
+        ctx: RunContext[PaperQADependencies],
+        query: str,
 ) -> Any:
     """
     Query the papers to answer a specific question using PaperQA.
@@ -65,10 +96,32 @@ async def query_papers(
         The full PQASession object with the answer and context
     """
     try:
-        settings = ctx.deps.set_paperqa_settings()
+        settings = ctx.deps.get_paperqa_settings()
 
-        await get_directory_index(settings=settings, build=False)
+        # Try to build the index if needed
+        try:
+            # First try to get the index without building
+            index = await get_directory_index(settings=settings, build=False)
+            index_files = await index.index_files
 
+            # If we get here, the index exists and has files
+            if not index_files:
+                return {
+                    "message": "No papers are currently indexed. You can add papers using the add_paper function.",
+                    "papers": []
+                }
+        except Exception as e:
+            # If the error is about an empty index, return a helpful message
+            if "was empty, please rebuild it" in str(e):
+                return {
+                    "message": "No papers are currently indexed. You can add papers using the add_paper function.",
+                    "papers": []
+                }
+            else:
+                # For other errors, re-raise
+                raise
+
+        # If we get here, we have a valid index
         response = await agent_query(
             query=query,
             settings=settings
@@ -78,6 +131,14 @@ async def query_papers(
     except Exception as e:
         if "ModelRetry" in str(type(e)):
             raise e
+
+        # For empty index errors, return a more helpful message
+        if "was empty, please rebuild it" in str(e):
+            return {
+                "message": "No papers are currently indexed. You can add papers using the add_paper function.",
+                "papers": []
+            }
+
         raise ModelRetry(f"Error querying papers: {str(e)}")
 
 
@@ -94,7 +155,7 @@ async def build_index(
         Information about the indexing process
     """
     try:
-        settings = ctx.deps.set_paperqa_settings()
+        settings = ctx.deps.get_paperqa_settings()
         paper_directory = settings.agent.index.paper_directory
 
         os.makedirs(paper_directory, exist_ok=True)
@@ -174,7 +235,7 @@ async def add_paper(
         Information about the added paper
     """
     try:
-        settings = ctx.deps.set_paperqa_settings()
+        settings = ctx.deps.get_paperqa_settings()
 
         # Ensure the paper directory exists
         paper_directory = settings.agent.index.paper_directory
@@ -305,7 +366,7 @@ async def add_papers(
         Information about the added papers
     """
     try:
-        settings = ctx.deps.set_paperqa_settings()
+        settings = ctx.deps.get_paperqa_settings()
 
         if not os.path.isdir(directory):
             full_path = os.path.join(ctx.deps.paper_directory, directory)
@@ -379,7 +440,7 @@ async def list_papers(
         Information about all papers in the paper directory
     """
     try:
-        settings = ctx.deps.set_paperqa_settings()
+        settings = ctx.deps.get_paperqa_settings()
         paper_directory = settings.agent.index.paper_directory
 
         pdf_files = []

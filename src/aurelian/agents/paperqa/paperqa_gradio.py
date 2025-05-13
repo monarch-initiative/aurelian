@@ -10,7 +10,7 @@ from .paperqa_agent import paperqa_agent
 from .paperqa_config import PaperQADependencies, get_config
 
 
-async def get_info(query: str, history: List[str], deps: PaperQADependencies, model=None) -> str:
+async def get_info(query: str, history: List[str], deps: PaperQADependencies, **kwargs) -> str:
     """
     Process a query using the PaperQA agent.
     
@@ -31,7 +31,7 @@ async def get_info(query: str, history: List[str], deps: PaperQADependencies, mo
         for h in history:
             query += f"\n{h}"
     
-    result = await paperqa_agent.run(query, deps=deps, model=model)
+    result = await paperqa_agent.run(query, deps=deps, **kwargs)
     return result.data
 
 
@@ -57,7 +57,7 @@ def chat(deps: Optional[PaperQADependencies] = None, model=None, **kwargs):
     def get_info_wrapper(query: str, history: List[str]) -> str:
         """Wrapper for the async get_info function."""
         import asyncio
-        return asyncio.run(get_info(query, history, deps, model))
+        return asyncio.run(get_info(query, history, deps, **kwargs))
 
     return gr.ChatInterface(
         fn=get_info_wrapper,
@@ -66,7 +66,7 @@ def chat(deps: Optional[PaperQADependencies] = None, model=None, **kwargs):
         description="""This assistant helps you search and analyze scientific papers. You can:
         - Search for papers on a topic
         - Ask questions about the papers in the repository
-        - Add specific papers by path or URL
+        - Add specific papers by path or URL (aurelian/tests/data/3_pdfs/Barthélemy et al. - 2020 - Blood plasma phosphorylated-tau isoforms track CNS.pdf
         - List all papers in the collection""",
         examples=[
             ["Search for papers on CRISPR gene editing"],
