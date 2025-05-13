@@ -1,7 +1,6 @@
 """
 Configuration for the PaperQA agent.
 """
-import warnings
 from dataclasses import dataclass, field
 import os
 from typing import Optional, List
@@ -12,7 +11,7 @@ from paperqa.settings import (
     ParsingSettings,
     PromptSettings,
     AgentSettings,
-    IndexSettings,
+    IndexSettings, Settings,
 )
 
 from aurelian.dependencies.workdir import HasWorkdir, WorkDir
@@ -34,12 +33,12 @@ class PaperQADependencies(HasWorkdir):
 
     # Model settings - These are PaperQA defaults
     llm: str = field(
-        default="gpt-4o-2024-11-20",
-        metadata={"description": "LLM to use for queries and answer generation. Default is gpt-4o-2024-11-20."}
+        default="gpt-4.1-2025-04-14",
+        metadata={"description": "LLM to use for queries and answer generation. Default is gpt-4.1-2025-04-14."}
     )
     summary_llm: str = field(
-        default="gpt-4o-2024-11-20",
-        metadata={"description": "LLM to use for summarization. Default is gpt-4o-2024-11-20."}
+        default="gpt-4.1-2025-04-14",
+        metadata={"description": "LLM to use for summarization. Default is gpt-4.1-2025-04-14."}
     )
     embedding: str = field(
         default="text-embedding-3-small",
@@ -87,20 +86,13 @@ class PaperQADependencies(HasWorkdir):
         if self.workdir is None:
             self.workdir = WorkDir()
 
-    def set_paperqa_settings(self,
-                             paper_directory) -> PQASettings:
+    def get_paperqa_settings(self) -> PQASettings:
         """
         Convert to PaperQA Settings object.
 
         This allows users to customize all PaperQA settings through the dependencies object.
         Any changes to the dependencies will be reflected in the returned Settings object.
-
-        Args:
-            paper_directory (str): Directory containing papers to be indexed or queried against.
         """
-        if not os.environ.get("PQA_HOME"):
-            os.environ["PQA_HOME"] = paper_directory
-
         return PQASettings(
             llm=self.llm,
             summary_llm=self.summary_llm,
@@ -123,18 +115,15 @@ class PaperQADependencies(HasWorkdir):
                 search_count=self.search_count,
                 index=IndexSettings(
                     name=self.index_name,
-                    paper_directory=paper_directory
+                    paper_directory=self.paper_directory,
                 ),
             ),
         )
 
 
-def get_config(paper_directory) -> PaperQADependencies:
+def get_config() -> PaperQADependencies:
     """
     Get the PaperQA configuration from environment variables or defaults.
-
-    Args:
-        paper_directory (str): Directory containing papers to be indexed or queried against.
 
     Returns:
         A PaperQADependencies instance with default settings.
@@ -143,29 +132,15 @@ def get_config(paper_directory) -> PaperQADependencies:
         Users can modify the returned object to customize settings.
         Example:
             ```python
-            deps = get_config(paper_directory="/path/to/papers")
+            deps = get_config()
             deps.llm = "claude-3-sonnet-20240229"  # Use Claude instead of default GPT-4
             deps.temperature = 0.5  # Increase temperature
             deps.evidence_k = 15  # Retrieve more evidence
             ```
     """
-
-    if not os.path.exists(paper_directory):
-        warnings.warn(f"Paper directory does not exist: {paper_directory}. Creating it.")
-        os.makedirs(paper_directory, exist_ok=True)
-
     workdir_path = os.environ.get("AURELIAN_WORKDIR", None)
     workdir = WorkDir(location=workdir_path) if workdir_path else None
 
-    # Get embedding model from environment if available
-    embedding = os.environ.get("PAPERQA_EMBEDDING", "text-embedding-3-small")
-
-    # Get LLM from environment if available
-    llm = os.environ.get("PAPERQA_LLM", "gpt-4o-2024-11-20")
-
     return PaperQADependencies(
-        paper_directory=paper_directory,
         workdir=workdir,
-        embedding=embedding,
-        llm=llm,
     )
