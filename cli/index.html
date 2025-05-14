@@ -1559,6 +1559,79 @@ phenotypes, and other biomedical entities through the Monarch Knowledge Base.</p
                              query mode.  [default: no-ui]
   --help                     Show this message and exit.
 </code></pre></div>
+<h2 id="paperqa">paperqa</h2>
+<p>PaperQA management commands for indexing and querying documents.</p>
+<p>PaperQA supports PDF, TXT, HTML, and Markdown files in all operations.</p>
+<p>Examples:
+    # Index documents in a directory
+    aurelian paperqa index -d /path/to/papers</p>
+<div class="codehilite"><pre><span></span><code># Ask a question about indexed papers
+aurelian paperqa ask &quot;What is the role of tau protein in Alzheimer&#39;s?&quot; -d /path/to/papers
+
+# List indexed papers
+aurelian paperqa list -d /path/to/papers
+
+# Run with increased verbosity
+aurelian paperqa --verbose index -d /path/to/papers
+
+# Add documents through the agent
+# (Using these commands in chat modes like Gradio or MCP)
+&quot;Add the paper from /path/to/paper.pdf&quot;
+&quot;Add all papers from the directory /path/to/papers/&quot;
+</code></pre></div>
+
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main paperqa [OPTIONS] COMMAND [ARGS]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -v, --verbose  Increase verbosity level (-v for INFO, -vv for DEBUG)
+  -q, --quiet    Suppress non-error output
+  --help         Show this message and exit.
+</code></pre></div>
+<h3 id="ask">ask</h3>
+<p>Ask a question about the indexed documents.</p>
+<p>This command searches the indexed documents for information relevant to the
+provided query and generates an AI-powered answer with references. Make sure
+to run the 'index' command first to create an index.</p>
+<p>Example:
+    aurelian paperqa ask "What are the key findings on tau proteins?" -d ~/research/papers</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main paperqa ask [OPTIONS] QUERY
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -d, --directory TEXT  Paper directory containing indexed documents
+                        [required]
+  --help                Show this message and exit.
+</code></pre></div>
+<h3 id="index">index</h3>
+<p>Index documents for search and querying.</p>
+<p>This command scans the specified directory for documents (PDF, TXT, HTML, MD)
+and creates a searchable index for them. The index is stored in the .pqa
+subdirectory of the specified directory.</p>
+<p>Example:
+    aurelian paperqa index -d ~/research/papers</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main paperqa index [OPTIONS]
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -d, --directory TEXT  Paper directory containing PDF, TXT, HTML, and MD
+                        files to index  [required]
+  --help                Show this message and exit.
+</code></pre></div>
+<h3 id="list">list</h3>
+<p>List documents in the directory and their indexing status.</p>
+<p>This command displays all documents (PDF, TXT, HTML, MD) in the specified
+directory and shows which ones have been indexed. Use this to verify that
+your documents are properly recognized and indexed.</p>
+<p>Example:
+    aurelian paperqa list -d ~/research/papers</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main paperqa list [OPTIONS]
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -d, --directory TEXT  Paper directory containing documents  [required]
+  --help                Show this message and exit.
+</code></pre></div>
 <h2 id="phenopackets">phenopackets</h2>
 <p>Start the Phenopackets Agent for standardized phenotype data.</p>
 <p>The Phenopackets Agent helps work with GA4GH Phenopackets, a standard 
