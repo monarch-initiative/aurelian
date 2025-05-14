@@ -12,6 +12,9 @@ __pycache__/
 # C extensions
 *.so
 
+# ignore paper_qa_index
+/tests/data/3_pdfs/.pqa
+
 # Distribution / packaging
 .Python
 build/
