@@ -56,7 +56,6 @@ async def inspect_file(data_file: str) -> str:
     Inspect a file in the working directory.
 
     Args:
-        ctx:
         data_file: name of file
 
     Returns:
@@ -71,7 +70,6 @@ async def list_files() -> str:
     List files in the working directory.
 
     Args:
-        ctx:
 
     Returns:
 
@@ -84,7 +82,6 @@ async def write_to_file(data: str, file_name: str) -> str:
     Write data to a file in the working directory.
 
     Args:
-        ctx:
         data:
         file_name:
 
@@ -104,7 +101,6 @@ async def validate_data(schema: str, data_file: str) -> str:
     You can write data to the working directory using the `write_to_file` tool.
 
     Args:
-        ctx:
         schema: the schema (as a YAML string)
         data_file: the name of the data file in the working directory
 
@@ -167,7 +163,6 @@ async def download_web_page(url: str, local_file_name: str) -> str:
     Download contents of a web page.
 
     Args:
-        ctx:
         url: URL of the web page
         local_file_name: Name of the local file to save the
 

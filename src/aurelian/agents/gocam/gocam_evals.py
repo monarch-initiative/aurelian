@@ -14,9 +14,6 @@ from pydantic_evals import Case, Dataset
 from aurelian.agents.gocam.gocam_agent import gocam_agent
 from aurelian.agents.gocam.gocam_config import GOCAMDependencies
 
-class GOCAMMetadata(Dict[str, Any]):
-    """Simple metadata dictionary for GO-CAM evaluations."""
-    pass
 
 # Define individual evaluation cases
 case1 = Case(

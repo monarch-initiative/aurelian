@@ -31,9 +31,6 @@ def test_normalize_uniprot_id():
     assert normalize_uniprot_id("P12345") == "P12345"
 
 
-    
-
-
 @pytest.fixture
 def mock_uniprot_client():
     """Fixture to mock the UniProt client."""

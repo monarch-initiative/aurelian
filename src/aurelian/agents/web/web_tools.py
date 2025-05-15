@@ -43,9 +43,11 @@ async def search_web(query: str) -> str:
     return web_search(query)
 
 
-async def perplexity_query(query: str, model_name: str = "sonar") -> ResultWithCitations:
+async def perplexity_query(query: str, model_name: str = "sonar-pro") -> ResultWithCitations:
     """
     Query the Perplexity API and return structured results with citations.
+
+    The Perplexity API performs a web search and returns a structured response with citations.
     
     Args:
         query: The query to send to Perplexity
@@ -58,14 +60,24 @@ async def perplexity_query(query: str, model_name: str = "sonar") -> ResultWithC
         ValueError: If the Perplexity API key is not set
         RuntimeError: If the response parsing fails
     """
+    # TODO: consider using perplexity API directly, gives control over search domains, e.g. https://docs.perplexity.ai/guides/search-domain-filters
     perplexity_api_key = os.environ.get("PERPLEXITY_API_KEY")
     if not perplexity_api_key:
         raise ValueError("PERPLEXITY_API_KEY environment variable is not set")
         
+    # Use specific implementation instead of OpenAIModel directly
+    # since OpenAIModel doesn't accept base_url and api_key params directly
+    from pydantic_ai.models.openai import Provider
+    from pydantic_ai.providers.openai_provider import OpenAIProvider
+    
+    provider = OpenAIProvider(
+        api_key=perplexity_api_key,
+        base_url='https://api.perplexity.ai'
+    )
+    
     sonar_model = OpenAIModel(
         model_name=model_name,
-        base_url='https://api.perplexity.ai',
-        api_key=perplexity_api_key,
+        provider=provider,
     )
     
     agent = Agent(sonar_model,
