@@ -8,7 +8,7 @@ from .d4d_tools import get_full_schema, process_website_or_pdf
 
 
 # Create the agent, the full schema will be loaded when needed
-data_sheets_agent = Agent(
+d4d_agent = Agent(
     model="openai:gpt-4o",
     deps_type=D4DConfig,
     system_prompt="""
@@ -24,7 +24,7 @@ filled in, following the schema exactly.
 )
 
 
-@data_sheets_agent.system_prompt
+@d4d_agent.system_prompt
 async def add_schema(ctx: RunContext[D4DConfig]) -> str:
     """
     Add the full schema to the system prompt.
@@ -39,7 +39,7 @@ async def add_schema(ctx: RunContext[D4DConfig]) -> str:
     return schema
 
 
-@data_sheets_agent.tool
+@d4d_agent.tool
 async def extract_metadata(ctx: RunContext[D4DConfig], url: str) -> str:
     """
     Extract metadata from a dataset description document or webpage.

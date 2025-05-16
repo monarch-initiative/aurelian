@@ -3,7 +3,7 @@ D4D (Datasheets for Datasets) agent package for extracting dataset metadata.
 """
 
 # isort: skip_file
-from .d4d_agent import data_sheets_agent  # noqa: E402
+from .d4d_agent import d4d_agent  # noqa: E402
 from .d4d_config import D4DConfig, get_config  # noqa: E402
 from .d4d_gradio import chat  # noqa: E402
 from .d4d_tools import (  # noqa: E402
@@ -14,7 +14,7 @@ from .d4d_tools import (  # noqa: E402
 
 __all__ = [
     # Agent
-    "data_sheets_agent",
+    "d4d_agent",
     
     # Config
     "D4DConfig",
