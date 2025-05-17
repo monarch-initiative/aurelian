@@ -7,7 +7,6 @@ from typing import Dict, List, Optional
 from pydantic_ai import RunContext, ModelRetry
 
 from aurelian.utils.data_utils import obj_to_dict
-from aurelian.utils.async_utils import run_sync
 from .monarch_config import MonarchDependencies, get_config
 
 
