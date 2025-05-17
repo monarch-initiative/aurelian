@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import gradio as gr
 
-from .d4d_agent import data_sheets_agent
+from .d4d_agent import d4d_agent
 from .d4d_config import D4DConfig, get_config
 
 
@@ -22,7 +22,7 @@ async def process_url(url: str, history: List[str], config: D4DConfig) -> str:
         YAML formatted metadata
     """
     # Run the agent with the URL
-    result = await data_sheets_agent.run(url, deps=config)
+    result = await d4d_agent.run(url, deps=config)
     return result.data
 
 
