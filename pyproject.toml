@@ -17,7 +17,7 @@ rdkit = {optional=true, version="*"}
 gocam = {optional=true, version="*"}
 linkml = {optional=true, version="*"}
 gradio = "^5.23.3"
-pydantic-ai = ">=0.0.29"
+pydantic-ai = ">=0.2.0"
 logfire = ">=3.5.3"
 bs4 = ">=0.0.2"
 duckduckgo-search = ">=7.3.2"
