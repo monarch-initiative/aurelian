@@ -209,6 +209,7 @@ gocam_reviewer_agent = Agent(
         Tool(lookup_gocam_local),
         #Tool(validate_gocam_model),
     ],
+    defer_model_check=True,
 )
 
 
