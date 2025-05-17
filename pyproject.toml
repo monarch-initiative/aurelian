@@ -84,6 +84,7 @@ typer = ">=0.9.0"  # Required for mkdocs-click
 
 [tool.poetry.scripts]
 aurelian = "aurelian.cli:main"
+aurelian-mcp-gocam = "aurelian.agents.gocam.gocam_mcp:main"
 
 [tool.poetry-dynamic-versioning]
 enable = true
