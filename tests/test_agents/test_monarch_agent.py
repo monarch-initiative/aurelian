@@ -8,7 +8,7 @@ import asyncio
 
 from pydantic_ai import ModelRetry
 
-from aurelian.agents.monarch.monarch_agent import monarch_agent
+
 from aurelian.agents.monarch.monarch_tools import (
     get_gene_id,
     get_disease_id,
@@ -41,6 +41,7 @@ else:
         pytest.mark.integration,
         pytest.mark.flaky(reruns=1, reruns_delay=2),
     ]
+    from aurelian.agents.monarch.monarch_agent import monarch_agent
 
 
 @pytest.fixture
