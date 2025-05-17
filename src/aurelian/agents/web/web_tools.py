@@ -68,7 +68,8 @@ async def perplexity_query(query: str, model_name: str = "sonar-pro") -> ResultW
     # Use specific implementation instead of OpenAIModel directly
     # since OpenAIModel doesn't accept base_url and api_key params directly
     from pydantic_ai.models.openai import Provider
-    from pydantic_ai.providers.openai_provider import OpenAIProvider
+    from pydantic_ai.providers.openai import OpenAIProvider
+
     
     provider = OpenAIProvider(
         api_key=perplexity_api_key,
