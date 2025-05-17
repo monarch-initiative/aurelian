@@ -557,8 +557,6 @@ def perplexity(term):
     """Search the web for a query term, with citations."""
     from aurelian.agents.web.web_tools import perplexity_query
     result = run_sync(perplexity_query(term))
-    #import asyncio
-    #txt = asyncio.run(perplexity_query(term))
     import yaml
     print(yaml.dump(result.model_dump(), indent=2))
 
