@@ -239,4 +239,5 @@ gocam_review_summarizer_agent = Agent(
         #Tool(lookup_gocam_local),
     ],
     result_type=GOCamReviewSummary,
+    defer_model_check=True,
 )
