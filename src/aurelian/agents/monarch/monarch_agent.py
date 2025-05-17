@@ -37,6 +37,7 @@ monarch_agent = Agent(
     model="openai:gpt-4o",
     system_prompt=MONARCH_SYSTEM_PROMPT,
     deps_type=MonarchDependencies,
+    defer_model_check=True,
 )
 
 # Register the tools with the agent
