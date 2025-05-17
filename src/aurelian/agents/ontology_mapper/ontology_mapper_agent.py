@@ -39,6 +39,7 @@ ontology_mapper_agent = Agent(
     deps_type=OntologyMapperDependencies,
     result_type=str,
     system_prompt=ONTOLOGY_MAPPER_SYSTEM_PROMPT,
+    defer_model_check=True,
 )
 
 # Register the tools with the agent

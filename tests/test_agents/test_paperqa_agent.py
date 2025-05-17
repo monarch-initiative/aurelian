@@ -5,7 +5,7 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 
-from aurelian.agents.paperqa.paperqa_agent import paperqa_agent
+
 from aurelian.agents.paperqa.paperqa_tools import (
     search_papers,
     query_papers,
@@ -37,6 +37,7 @@ else:
         pytest.mark.integration,
         pytest.mark.flaky(reruns=1, reruns_delay=2),
     ]
+    from aurelian.agents.paperqa.paperqa_agent import paperqa_agent
 
 
 @pytest.mark.parametrize(

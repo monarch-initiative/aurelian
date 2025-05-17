@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Any, Awaitable, Callable, Optional, List
 
+from aurelian.utils.async_utils import run_sync
 import click
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -550,6 +551,14 @@ def websearch(term):
     txt = web_search(term)
     print(txt)
 
+@main.command()
+@click.argument("term")
+def perplexity(term):
+    """Search the web for a query term, with citations."""
+    from aurelian.agents.web.web_tools import perplexity_query
+    result = run_sync(perplexity_query(term))
+    import yaml
+    print(yaml.dump(result.model_dump(), indent=2))
 
 @main.command()
 @click.argument("url")

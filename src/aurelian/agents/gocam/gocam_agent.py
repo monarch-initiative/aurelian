@@ -135,6 +135,7 @@ gocam_agent = Agent(
     deps_type=GOCAMDependencies,
     system_prompt=SYSTEM,
     tools=core_tools,
+    defer_model_check=True,
 )
 
 def get_documents_for_prompt() -> str:
@@ -208,6 +209,7 @@ gocam_reviewer_agent = Agent(
         Tool(lookup_gocam_local),
         #Tool(validate_gocam_model),
     ],
+    defer_model_check=True,
 )
 
 
@@ -237,4 +239,5 @@ gocam_review_summarizer_agent = Agent(
         #Tool(lookup_gocam_local),
     ],
     result_type=GOCamReviewSummary,
+    defer_model_check=True,
 )

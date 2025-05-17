@@ -1,6 +1,7 @@
 """
 Agent for working with scientific literature and publications.
 """
+from aurelian.agents.web.web_tools import perplexity_query
 from aurelian.agents.literature.literature_config import LiteratureDependencies
 from aurelian.agents.literature.literature_tools import (
     lookup_pmid,
@@ -48,6 +49,25 @@ literature_agent = Agent(
         Tool(get_article_abstract),
         Tool(extract_text_from_pdf_url),
         Tool(search_literature_web),
+        #Tool(perplexity_query), 
+        Tool(retrieve_literature_page),
+        Tool(inspect_file),
+        Tool(list_files),
+    ]
+)
+
+advanced_literature_agent = Agent(
+    model="openai:gpt-4o",
+    deps_type=LiteratureDependencies,
+    system_prompt=SYSTEM,
+    tools=[
+        Tool(lookup_pmid),
+        Tool(lookup_doi),
+        Tool(convert_pmid_to_doi),
+        Tool(convert_doi_to_pmid),
+        Tool(get_article_abstract),
+        Tool(extract_text_from_pdf_url),
+        Tool(perplexity_query), 
         Tool(retrieve_literature_page),
         Tool(inspect_file),
         Tool(list_files),

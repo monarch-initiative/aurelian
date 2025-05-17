@@ -13,9 +13,16 @@ MCP (Model Context Protocol) is an open protocol that standardizes how applicati
 - Secure your data within your infrastructure
 - Enable complex agent workflows
 
+## MCP Integrations
+
+Aurelian MCPs can be integrated with different AI systems:
+
+- [Goose](integrations/goose.md) - An open-source AI assistant from Block
+- Claude - Anthropic's conversational AI assistant
+
 ## Setting Up MCP Servers for Aurelian
 
-Aurelian provides MCP server implementations for several of its agents. You can use these servers to expose Aurelian's capabilities to any MCP-compatible client (such as Claude).
+Aurelian provides MCP server implementations for several of its agents. You can use these servers to expose Aurelian's capabilities to any MCP-compatible client (such as Claude or Goose).
 
 ### Configuration Options
 
@@ -91,6 +98,7 @@ Aurelian provides the following MCP servers:
 | amigo         | Agent         | Gene Ontology and gene associations                |
 | uniprot       | Agent         | UniProt protein information                        |
 | diagnosis     | Agent         | Disease diagnosis with Monarch Knowledge Graph     |
+| talisman      | Agent         | Gene set enrichment and gene analysis              |
 | memory        | Utility       | Persistent memory for MCP interactions             |
 
 ### Configuration Parameters
@@ -134,9 +142,14 @@ mcp start --config mcp-config.json
 
 4. In Claude, you can now interact with your Aurelian agents through MCP
 
+## Running MCP with Goose
+
+For detailed instructions on integrating Aurelian MCPs with Goose, see our [Goose Integration Guide](integrations/goose.md) and the [Talisman Example](goose/using-talisman-mcp.md).
+
 ## Example Use Cases
 
-- **LinkML Validation**: Use Claude to validate data against LinkML schemas
+- **Gene Analysis**: Analyze gene sets and their functions in biological pathways
+- **LinkML Validation**: Validate data against LinkML schemas
 - **Ontology Management**: Create and manipulate ontologies through natural language
 - **Gene Association Analysis**: Ask questions about gene functions and associations
 - **Phenotype Analysis**: Work with structured phenotype data

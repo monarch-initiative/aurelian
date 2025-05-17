@@ -21,6 +21,7 @@ content, extract all the relevant metadata, and output a YAML document that exac
 conforms to the above schema. The output must be valid YAML with all required fields 
 filled in, following the schema exactly.
 """,
+    defer_model_check=True,
 )
 
 

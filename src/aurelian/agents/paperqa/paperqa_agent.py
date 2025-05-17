@@ -55,6 +55,7 @@ paperqa_agent = Agent(
     deps_type=PaperQADependencies,
     result_type=str,
     system_prompt=PAPERQA_SYSTEM_PROMPT,
+    defer_model_check=True,
 )
 
 paperqa_agent.tool(search_papers)

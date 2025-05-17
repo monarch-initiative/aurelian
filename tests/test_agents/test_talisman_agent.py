@@ -8,7 +8,6 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
-from aurelian.agents.talisman.talisman_agent import talisman_agent
 from aurelian.agents.talisman.talisman_tools import get_gene_description, get_gene_descriptions, get_genes_from_list, analyze_gene_set
 
 
