@@ -30,6 +30,7 @@ biblio_agent = Agent(
         " tables for this. Use your judgment in how to roll up tables, and whether values"
         " should be present/absent, increased/decreased, or more specific."
     ),
+    defer_model_check=True,
 )
 
 

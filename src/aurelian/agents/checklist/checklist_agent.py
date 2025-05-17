@@ -22,6 +22,7 @@ checklist_agent = Agent(
         "\nThe available checklists are:"
     ),
     deps_type=ChecklistDependencies,
+    defer_model_check=True,
 )
 
 

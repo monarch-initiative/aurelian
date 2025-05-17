@@ -39,7 +39,8 @@ chemistry_agent = Agent(
         Tool(retrieve_chemistry_web_page),
         Tool(inspect_file),
         Tool(list_files),
-    ]
+    ],
+    defer_model_check=True,
 )
 
 # Remove the chat import to avoid circular imports
