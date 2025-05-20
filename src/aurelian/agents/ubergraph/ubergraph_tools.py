@@ -2,9 +2,9 @@
 Tools for interacting with the UberGraph SPARQL endpoint.
 """
 import asyncio
-import requests
 from typing import Any, Dict, List, Optional
 
+import requests
 from pydantic import BaseModel
 from pydantic_ai import RunContext, ModelRetry
 
