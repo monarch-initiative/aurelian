@@ -2,11 +2,11 @@
 Tools for interacting with the UberGraph SPARQL endpoint.
 """
 import asyncio
+import requests
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 from pydantic_ai import RunContext, ModelRetry
-from SPARQLWrapper import JSON, SPARQLWrapper
 
 from .ubergraph_config import Dependencies, get_config
 
@@ -88,13 +88,23 @@ async def query_ubergraph(ctx: RunContext[Dependencies], query: str) -> QueryRes
     print("##")
     
     try:
-        # Create SPARQL wrapper
-        sw = SPARQLWrapper(endpoint)
-        sw.setQuery(prefixed_query)
-        sw.setReturnFormat(JSON)
+        # Define a function to execute in a thread pool
+        def run_query():
+            response = requests.post(
+                endpoint,
+                data={
+                    'query': prefixed_query,
+                },
+                headers={
+                    'Accept': 'application/sparql-results+json',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            )
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            return response.json()
         
         # Execute the query in a thread pool
-        ret = await asyncio.to_thread(sw.queryAndConvert)
+        ret = await asyncio.to_thread(run_query)
         
         # Process the results
         results = simplify_results(ret, prefixes, limit=config.max_results)
@@ -105,6 +115,8 @@ async def query_ubergraph(ctx: RunContext[Dependencies], query: str) -> QueryRes
             raise ModelRetry(f"No results found for SPARQL query. Try refining your query.")
             
         return QueryResults(results=results)
+    except requests.RequestException as e:
+        raise ModelRetry(f"Error connecting to SPARQL endpoint: {str(e)}")
     except Exception as e:
         if "ModelRetry" in str(type(e)):
             raise e
