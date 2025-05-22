@@ -12,10 +12,12 @@ from typing import Dict, List, Optional, Tuple
 from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_agent import scientific_knowledge_extraction_agent
 from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_config import ScientificKnowledgeExtractionDependencies
 from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_tools import (
-    map_all_assertions_to_ontology,
-    export_assertions_as_rdf,
-    process_all_unprocessed_pdfs,
-    get_extracted_knowledge
+    map_to_biolink,
+    ground_to_ontology,
+    export_to_kgx,
+    read_pdf,
+    extract_knowledge,
+    create_kg_edges
 )
 
 # Global state for the Gradio app
@@ -125,19 +127,35 @@ async def process_all_pdfs() -> str:
                 
         ctx = RunContext(state.dependencies)
         
-        # Use the agent's tool to process all PDFs
-        result = await process_all_unprocessed_pdfs(ctx)
+        # Process each PDF file
+        processed_count = 0
+        total_edges = 0
         
-        # Update the PDF list
-        for pdf in state.current_pdfs:
-            pdf_path = pdf["file_path"]
-            pdf["is_processed"] = state.dependencies.is_processed(pdf_path)
+        # Get the list of PDF files
+        for pdf_file in state.current_pdfs:
+            if not pdf_file.get("is_processed", False):
+                file_path = pdf_file["file_path"]
+                try:
+                    # Read the PDF
+                    pdf_data = await read_pdf(ctx, file_path)
+                    
+                    # Extract knowledge
+                    edges = await extract_knowledge(ctx, pdf_data)
+                    
+                    # Process edges if any were found
+                    if edges:
+                        processed_count += 1
+                        total_edges += len(edges)
+                        # Mark as processed in our tracking
+                        pdf_file["is_processed"] = True
+                except Exception as e:
+                    print(f"Error processing {file_path}: {str(e)}")
         
         # Format the result message
-        if result["processed"] == 0:
+        if processed_count == 0:
             return "No new PDFs to process."
         else:
-            return f"Processed {result['processed']} PDFs. Extracted {result.get('total_assertions', 0)} scientific assertions."
+            return f"Processed {processed_count} PDFs. Extracted {total_edges} knowledge edges."
     
     except Exception as e:
         return f"Error processing PDFs: {str(e)}"
@@ -151,7 +169,7 @@ async def get_knowledge(include_ontology: bool = False) -> pd.DataFrame:
         include_ontology: Whether to include ontology mapping information in the DataFrame
     """
     if not state.dependencies:
-        return pd.DataFrame(columns=["Subject", "Predicate", "Object", "Evidence", "Paper"])
+        return pd.DataFrame(columns=["Subject", "Predicate", "Object", "Evidence", "Source"])
     
     try:
         # Create RunContext
@@ -161,12 +179,30 @@ async def get_knowledge(include_ontology: bool = False) -> pd.DataFrame:
                 
         ctx = RunContext(state.dependencies)
         
-        # Use the agent's tool to get all knowledge
-        knowledge = await get_extracted_knowledge(ctx)
-        state.extracted_knowledge = knowledge
+        # Get knowledge from processing all PDF files
+        all_knowledge = []
         
-        if not knowledge:
-            return pd.DataFrame(columns=["Subject", "Predicate", "Object", "Evidence", "Paper"])
+        # Process each PDF file in the directory
+        for pdf_file in state.current_pdfs:
+            file_path = pdf_file["file_path"]
+            try:
+                # Read the PDF
+                pdf_data = await read_pdf(ctx, file_path)
+                
+                # Extract knowledge
+                edges = await extract_knowledge(ctx, pdf_data)
+                
+                # Ground entities to ontologies and map predicates to biolink
+                if edges:
+                    processed_edges = await create_kg_edges(ctx, edges)
+                    all_knowledge.extend(processed_edges)
+            except Exception as e:
+                print(f"Error processing {file_path} for knowledge retrieval: {str(e)}")
+        
+        state.extracted_knowledge = all_knowledge
+        
+        if not all_knowledge:
+            return pd.DataFrame(columns=["Subject", "Predicate", "Object", "Evidence", "Source"])
         
         # Prepare columns based on whether to include ontology info
         if include_ontology:
@@ -174,16 +210,17 @@ async def get_knowledge(include_ontology: bool = False) -> pd.DataFrame:
             df = pd.DataFrame([
                 {
                     "Subject": k["subject"],
-                    "Subject_Ontology": f"{k.get('subject_ontology_id', '')} ({k.get('subject_ontology_source', '')})" if k.get('subject_ontology_id') else "",
+                    "Subject_CURIE": k.get("subject_curie", ""),
                     "Predicate": k["predicate"],
-                    "Predicate_Ontology": f"{k.get('predicate_ontology_id', '')} ({k.get('predicate_ontology_source', '')})" if k.get('predicate_ontology_id') else "",
+                    "Predicate_CURIE": k.get("predicate_curie", ""),
                     "Object": k["object"],
-                    "Object_Ontology": f"{k.get('object_ontology_id', '')} ({k.get('object_ontology_source', '')})" if k.get('object_ontology_id') else "",
-                    "Evidence": k["evidence"],
-                    "Paper": k.get("paper_title", "Unknown"),
-                    "DOI": k.get("paper_doi", "")
+                    "Object_CURIE": k.get("object_curie", ""),
+                    "Evidence": k.get("evidence_text", ""),
+                    "Source": k.get("source_title", "Unknown"),
+                    "DOI": k.get("source_id", ""),
+                    "Confidence": k.get("confidence", 0.0)
                 }
-                for k in knowledge
+                for k in all_knowledge
             ])
         else:
             # Simple version without ontology information
@@ -192,11 +229,11 @@ async def get_knowledge(include_ontology: bool = False) -> pd.DataFrame:
                     "Subject": k["subject"],
                     "Predicate": k["predicate"],
                     "Object": k["object"],
-                    "Evidence": k["evidence"],
-                    "Paper": k.get("paper_title", "Unknown"),
-                    "DOI": k.get("paper_doi", "")
+                    "Evidence": k.get("evidence_text", ""),
+                    "Source": k.get("source_title", "Unknown"),
+                    "DOI": k.get("source_id", "")
                 }
-                for k in knowledge
+                for k in all_knowledge
             ])
         
         return df
@@ -218,9 +255,66 @@ async def map_ontologies() -> Dict:
                 
         ctx = RunContext(state.dependencies)
         
-        # Use the agent's tool to map assertions to ontology terms
-        result = await map_all_assertions_to_ontology(ctx)
-        return result
+        # Process each knowledge item from state
+        if not state.extracted_knowledge:
+            # Get knowledge first if not already loaded
+            all_knowledge = []
+            
+            # Process each PDF file in the directory
+            for pdf_file in state.current_pdfs:
+                file_path = pdf_file["file_path"]
+                try:
+                    # Read the PDF
+                    pdf_data = await read_pdf(ctx, file_path)
+                    
+                    # Extract knowledge
+                    edges = await extract_knowledge(ctx, pdf_data)
+                    
+                    if edges:
+                        all_knowledge.extend(edges)
+                except Exception as e:
+                    print(f"Error processing {file_path} for knowledge retrieval: {str(e)}")
+            
+            state.extracted_knowledge = all_knowledge
+        
+        # Map each entity to ontology and each predicate to biolink
+        mapped_count = 0
+        unmapped_count = 0
+        updated_knowledge = []
+        
+        for edge in state.extracted_knowledge:
+            # Ground entities to ontologies
+            grounded_edge = await ground_to_ontology(ctx, edge)
+            
+            # Map predicates to Biolink model
+            mapped_edge = await map_to_biolink(ctx, grounded_edge)
+            
+            # Check if mapping was successful
+            has_subject_mapping = "subject_curie" in mapped_edge and mapped_edge["subject_curie"]
+            has_predicate_mapping = "predicate_curie" in mapped_edge and mapped_edge["predicate_curie"]
+            has_object_mapping = "object_curie" in mapped_edge and mapped_edge["object_curie"]
+            
+            if has_subject_mapping or has_predicate_mapping or has_object_mapping:
+                mapped_count += 1
+            else:
+                unmapped_count += 1
+                
+            updated_knowledge.append(mapped_edge)
+        
+        # Update state with mapped knowledge
+        state.extracted_knowledge = updated_knowledge
+        
+        # Return mapping statistics
+        total = len(state.extracted_knowledge)
+        mapping_rate = f"{mapped_count/total*100:.1f}%" if total > 0 else "0%"
+        
+        return {
+            "status": "success",
+            "total": total,
+            "mapped": mapped_count,
+            "unmapped": unmapped_count,
+            "mapping_rate": mapping_rate
+        }
     
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -245,31 +339,24 @@ async def export_knowledge(format_type: str) -> Dict:
             df = pd.DataFrame([
                 {
                     "Subject": k["subject"],
-                    "Subject_Ontology_ID": k.get("subject_ontology_id", ""),
-                    "Subject_Ontology_Source": k.get("subject_ontology_source", ""),
+                    "Subject_CURIE": k.get("subject_curie", ""),
                     
                     "Predicate": k["predicate"],
-                    "Predicate_Ontology_ID": k.get("predicate_ontology_id", ""),
-                    "Predicate_Ontology_Source": k.get("predicate_ontology_source", ""),
+                    "Predicate_CURIE": k.get("predicate_curie", ""),
                     
                     "Object": k["object"],
-                    "Object_Ontology_ID": k.get("object_ontology_id", ""),
-                    "Object_Ontology_Source": k.get("object_ontology_source", ""),
+                    "Object_CURIE": k.get("object_curie", ""),
                     
-                    "Evidence": k["evidence"],
-                    "Confidence": k.get("confidence", 1.0),
-                    "Paper_DOI": k.get("paper_doi", ""),
-                    "Paper_Title": k.get("paper_title", ""),
-                    "Paper_Year": k.get("paper_year", ""),
-                    "Paper_PMID": k.get("paper_pmid", ""),
-                    "Section": k.get("section", ""),
-                    "Extraction_Date": k.get("extraction_date", "")
+                    "Evidence": k.get("evidence_text", ""),
+                    "Confidence": k.get("confidence", 0.0),
+                    "Source_ID": k.get("source_id", ""),
+                    "Source_Title": k.get("source_title", ""),
                 }
                 for k in state.extracted_knowledge
             ])
             df.to_csv(file_path, index=False)
             
-        elif format_type == "rdf":
+        elif format_type == "kgx":
             # Create RunContext
             class RunContext:
                 def __init__(self, deps):
@@ -277,10 +364,13 @@ async def export_knowledge(format_type: str) -> Dict:
                     
             ctx = RunContext(state.dependencies)
             
-            # Use the agent's tool to export as RDF
-            result = await export_assertions_as_rdf(ctx, file_path)
+            # Use the agent's tool to export as KGX
+            result = await export_to_kgx(ctx, state.extracted_knowledge, f"export.{format_type}")
             if result.get("status") != "success":
                 return result
+            
+            # Use the path from the result
+            file_path = result.get("output_path", file_path)
         
         return {"status": "success", "file_path": file_path}
     
@@ -418,7 +508,7 @@ def create_demo():
         with gr.Tab("Export"):
             with gr.Row():
                 export_format = gr.Radio(
-                    choices=["json", "csv", "rdf"], 
+                    choices=["json", "csv", "kgx"], 
                     label="Export Format", 
                     value="json"
                 )
@@ -430,7 +520,7 @@ def create_demo():
             gr.Markdown("""
             - **JSON**: Full knowledge data including ontology mappings and all metadata
             - **CSV**: Tabular format with separate columns for entities and their ontology mappings
-            - **RDF**: Semantic web format using standard ontology URIs with full provenance
+            - **KGX**: Knowledge Graph Exchange format with nodes and edges suitable for import into graph databases
             """)
             
             export_button.click(fn=export_knowledge, inputs=[export_format], outputs=export_result)
