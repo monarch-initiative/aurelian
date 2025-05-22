@@ -5,6 +5,9 @@ as edges for knowledge graphs, with subjects, predicates, and objects mapped to 
 ontologies and biolink predicates.
 """
 
+import os
+import asyncio
+from typing import List, Dict, Any, Optional
 from pydantic_ai import Agent, Tool
 
 from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_config import ScientificKnowledgeExtractionDependencies
@@ -51,6 +54,74 @@ scientific_knowledge_extraction_agent = Agent(
         Tool(export_to_kgx)
     ]
 )
+
+
+# CLI helper to process a directory of PDFs
+async def process_directory(pdf_dir: str, output_dir: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    Process all PDFs in a directory and extract knowledge from them.
+    
+    Args:
+        pdf_dir: Directory containing PDF files
+        output_dir: Optional directory for outputs (defaults to pdf_dir/kg_output)
+        
+    Returns:
+        List of extracted knowledge edges
+    """
+    # Create dependencies
+    if output_dir is None:
+        output_dir = os.path.join(pdf_dir, "kg_output")
+        
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Initialize dependencies
+    deps = ScientificKnowledgeExtractionDependencies(
+        pdf_directory=pdf_dir,
+        output_directory=output_dir
+    )
+    
+    # Create RunContext
+    class RunContext:
+        def __init__(self, deps):
+            self.dependencies = deps
+            
+    ctx = RunContext(deps)
+    
+    # List PDF files
+    pdf_files = await list_pdf_files(ctx)
+    print(f"Found {len(pdf_files)} PDF files in {pdf_dir}")
+    
+    # Process each PDF file
+    all_edges = []
+    
+    for pdf_file in pdf_files:
+        file_path = pdf_file["file_path"]
+        filename = pdf_file["filename"]
+        
+        print(f"Processing {filename}...")
+        
+        try:
+            # Read the PDF
+            pdf_data = await read_pdf(ctx, file_path)
+            
+            # Extract knowledge
+            edges = await extract_knowledge(ctx, pdf_data)
+            print(f"  Extracted {len(edges)} knowledge edges")
+            
+            # Process each edge through the ontology mapping pipeline
+            processed_edges = await create_kg_edges(ctx, edges)
+            all_edges.extend(processed_edges)
+        except Exception as e:
+            print(f"Error processing {filename}: {str(e)}")
+    
+    # Export to KGX format
+    if all_edges:
+        output_path = os.path.join(output_dir, "knowledge_graph.json")
+        result = await export_to_kgx(ctx, all_edges, "knowledge_graph.json")
+        print(f"Exported {result.get('node_count', 0)} nodes and {result.get('edge_count', 0)} edges to {result.get('output_path')}")
+    
+    return all_edges
 
 
 # Simple test function to verify the agent imports properly

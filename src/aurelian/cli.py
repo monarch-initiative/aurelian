@@ -543,7 +543,9 @@ def ubergraph(ui, query, **kwargs):
 @server_port_option
 @click.option("--pdf-dir", "-p", help="The directory containing PDF files to process")
 @click.option("--cache-dir", "-c", help="The directory to use for caching extracted knowledge")
-def scientific_knowledge(pdf_dir, cache_dir, **kwargs):
+@click.option("--output-dir", "-o", help="The directory to use for output files (defaults to pdf_dir/kg_output)")
+@click.option("--process", is_flag=True, help="Process PDF directory without launching UI")
+def scientific_knowledge(pdf_dir, cache_dir, output_dir, process, **kwargs):
     """Start the Scientific Knowledge Extraction Agent UI.
     
     The Scientific Knowledge Extraction Agent extracts structured knowledge from scientific 
@@ -553,9 +555,23 @@ def scientific_knowledge(pdf_dir, cache_dir, **kwargs):
     Features:
     - Extract structured assertions (subject-predicate-object) from scientific papers
     - Map extracted concepts to standard ontologies (GO, ChEBI, DOID, etc.)
-    - Export assertions as CSV, JSON, or RDF with full provenance
+    - Export assertions as CSV, JSON, or KGX with full provenance
     - Maintain a cache of processed papers to avoid redundant work
     """
+    # Check if we should process without UI
+    if process and pdf_dir:
+        import asyncio
+        from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_agent import process_directory
+        
+        print(f"Processing PDF directory: {pdf_dir}")
+        if output_dir:
+            print(f"Output directory: {output_dir}")
+            
+        # Run the processing function
+        asyncio.run(process_directory(pdf_dir, output_dir))
+        return
+    
+    # Normal UI mode
     from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_gradio import create_demo
     from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_config import ScientificKnowledgeExtractionDependencies
     

@@ -14,8 +14,8 @@ import datetime
 
 from pydantic_ai import RunContext, ModelRetry
 
-# Import utilities from aurelian
-from aurelian.utils.pdf_fetcher import extract_text_from_pdf
+# We'll use pdfminer directly instead of pdf_fetcher which expects URLs
+from pdfminer.high_level import extract_text
 
 # We'll use biolink-model package for predicate mapping
 try:
@@ -110,8 +110,8 @@ async def read_pdf(ctx: RunContext, file_path: str) -> Dict[str, Any]:
         if not os.path.exists(file_path):
             raise ModelRetry(f"PDF file '{file_path}' does not exist")
         
-        # Extract text using aurelian's utility
-        pdf_text = await extract_text_from_pdf(file_path)
+        # Extract text using pdfminer directly
+        pdf_text = await asyncio.to_thread(extract_text, file_path)
         
         # Try to extract basic metadata from the text
         doi = _extract_doi_from_text(pdf_text)
