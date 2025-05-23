@@ -1055,8 +1055,8 @@ def paperqa(ui, query, **kwargs):
 
 
 # Import and register PaperQA CLI commands
-# from aurelian.agents.paperqa.paperqa_cli import paperqa_cli
-# main.add_command(paperqa_cli)
+from aurelian.agents.paperqa.paperqa_cli import paperqa_cli
+main.add_command(paperqa_cli)
 
 # DO NOT REMOVE THIS LINE
 # added this for mkdocstrings to work
