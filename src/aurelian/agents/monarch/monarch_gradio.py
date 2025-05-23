@@ -10,18 +10,21 @@ from .monarch_agent import monarch_agent
 from .monarch_config import MonarchDependencies
 
 
-def chat(taxon: Optional[str] = None, **kwargs):
+def chat(deps: Optional[MonarchDependencies] = None, taxon: Optional[str] = None, **kwargs):
     """
     Initialize a chat interface for the Monarch agent.
     
     Args:
+        deps: Optional dependencies configuration
         taxon: Optional taxon ID to use, defaults to human (9606)
         **kwargs: Additional arguments to pass to the agent
         
     Returns:
         A Gradio chat interface
     """
-    deps = MonarchDependencies()
+    if deps is None:
+        deps = MonarchDependencies()
+        
     if taxon:
         deps.taxon = taxon
 

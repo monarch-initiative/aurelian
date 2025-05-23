@@ -5,14 +5,14 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
-from pydantic_ai import ModelRetry
+from pydantic_ai import ModelRetry, RunContext
 
-from aurelian.agents.uniprot.uniprot_agent import uniprot_agent
 from aurelian.agents.uniprot.uniprot_tools import (
     normalize_uniprot_id,
     search,
     lookup_uniprot_entry,
     uniprot_mapping,
+    map_to_uniprot,
 )
 from aurelian.agents.uniprot.uniprot_config import UniprotConfig, get_config
 from aurelian.dependencies.workdir import WorkDir
@@ -190,6 +190,8 @@ else:
         pytest.mark.integration,
         pytest.mark.flaky(reruns=1, reruns_delay=2),
     ]
+    from aurelian.agents.uniprot.uniprot_agent import uniprot_agent
+
 
 
 @pytest.fixture
@@ -199,6 +201,12 @@ def deps():
     config.workdir = WorkDir.create_temporary_workdir()
     return config
 
+#def test_map_to_uniprot(deps):
+#    """Test mapping of external IDs to UniProt IDs."""
+#    ctx = RunContext[UniprotConfig](deps=deps, model=None, usage=None, prompt=None)
+#    result = map_to_uniprot(ctx, ["PomBase:SPAC1071.09c"])
+#    print(result)
+#    assert False
 
 @pytest.mark.parametrize(
     "query,ideal",

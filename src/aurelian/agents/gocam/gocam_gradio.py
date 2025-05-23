@@ -36,11 +36,12 @@ def ui():
     return demo
 
 
-def chat(db_path: Optional[str] = None, collection_name: Optional[str] = None, **kwargs):
+def chat(deps: Optional[GOCAMDependencies] = None, db_path: Optional[str] = None, collection_name: Optional[str] = None, **kwargs):
     """
     Initialize a chat interface for the GOCAM agent.
     
     Args:
+        deps: Optional dependencies configuration
         db_path: Optional database path, defaults to MongoDB localhost
         collection_name: Optional collection name, defaults to "main"
         **kwargs: Additional arguments to pass to the agent
@@ -48,7 +49,9 @@ def chat(db_path: Optional[str] = None, collection_name: Optional[str] = None, *
     Returns:
         A Gradio chat interface
     """
-    deps = GOCAMDependencies()
+    if deps is None:
+        deps = GOCAMDependencies()
+        
     if db_path:
         deps.db_path = db_path
     if collection_name:
@@ -81,5 +84,6 @@ def chat(db_path: Optional[str] = None, collection_name: Optional[str] = None, *
             ],
             ["Find models involving the NLRP3 inflammasome. Compare the GO-CAM model with information available from uniprot"],
             ["Examine models for antimicrobial resistance, look for commonalities in genes"],
+            ["When curating GO-CAMs, the activity unit for a ligand of a signaling receptor should use which GO MF ID for the activity unit?"],
         ],
     )

@@ -18,6 +18,7 @@ rag_agent = Agent(
         "  - `inspect_document` to retrieve a specific document (by title/name)"
         "You can also use `lookup_pmid` to retrieve the text of a PubMed ID, or `search_web` to search the web."
     ),
+    defer_model_check=True,
 )
 
 

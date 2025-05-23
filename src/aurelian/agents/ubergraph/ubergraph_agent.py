@@ -50,6 +50,7 @@ ubergraph_agent = Agent(
     "openai:gpt-4o",
     deps_type=Dependencies,
     result_type=str,
+    defer_model_check=True,
 )
 
 # Register tools

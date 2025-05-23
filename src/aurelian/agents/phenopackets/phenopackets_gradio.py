@@ -10,11 +10,12 @@ from aurelian.agents.phenopackets.phenopackets_config import PhenopacketsDepende
 from aurelian.utils.async_utils import run_sync
 
 
-def chat(db_path: Optional[str] = None, collection_name: Optional[str] = None, **kwargs):
+def chat(deps: Optional[PhenopacketsDependencies] = None, db_path: Optional[str] = None, collection_name: Optional[str] = None, **kwargs):
     """
     Initialize a chat interface for the phenopackets agent.
     
     Args:
+        deps: Optional dependencies configuration
         db_path: Optional database path, defaults to MongoDB localhost
         collection_name: Optional collection name, defaults to "main"
         **kwargs: Additional arguments to pass to the agent
@@ -22,7 +23,9 @@ def chat(db_path: Optional[str] = None, collection_name: Optional[str] = None, *
     Returns:
         A Gradio chat interface
     """
-    deps = PhenopacketsDependencies()
+    if deps is None:
+        deps = PhenopacketsDependencies()
+        
     if db_path:
         deps.db_path = db_path
     if collection_name:

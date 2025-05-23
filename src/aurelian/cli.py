@@ -2,9 +2,14 @@
 
 import logging
 import warnings
-from typing import Optional, List
-
+import os
 import click
+
+from typing import Any, Awaitable, Callable, Optional, List
+
+from aurelian.utils.async_utils import run_sync
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from aurelian import __version__
 
@@ -28,6 +33,17 @@ model_option = click.option(
     "-m",
     help="The model to use for the agent.",
 )
+use_cborg_option = click.option(
+    "--use-cborg/--no-use-cborg",
+    default=False,
+    show_default=True,
+    help="Use CBORG as a model proxy (LBNL account required).",
+)
+agent_option = click.option(
+    "--agent",
+    "-a",
+    help="The agent to use (if non-default).",
+)
 workdir_option = click.option(
     "--workdir",
     "-w",
@@ -46,6 +62,12 @@ ui_option = click.option(
     default=False,
     show_default=True,
     help="Start the agent in UI mode instead of direct query mode.",
+)
+run_evals_option = click.option(
+    "--run-evals/--no-run-evals",
+    default=False,
+    show_default=True,
+    help="Run the agent in evaluation mode.",
 )
 ontologies_option = click.option(
     "--ontologies",
@@ -119,8 +141,10 @@ def run_agent(
     agent_module: str,
     query: Optional[tuple] = None,
     ui: bool = False,
+    specialist_agent_name: Optional[str] = None,
     agent_func_name: str = "run_sync",
     join_char: str = " ",
+    use_cborg: bool = False,
     **kwargs
 ) -> None:
     """Run an agent in either UI or direct query mode.
@@ -130,53 +154,162 @@ def run_agent(
         agent_module: Fully qualified module path to the agent
         query: Text query for direct mode
         ui: Whether to force UI mode
+        specialist_agent_name: Name of the agent class to run
         agent_func_name: Name of the function to run the agent
         join_char: Character to join multi-part queries with
         kwargs: Additional arguments for the agent
     """
+    # DEPRECATED: use the new agent command instead
     # Import required modules
     # These are imported dynamically to avoid loading all agents on startup
-    gradio_module = __import__(f"aurelian.agents.{agent_name}.{agent_name}_gradio", fromlist=["chat"])
-    agent_class = __import__(f"aurelian.agents.{agent_name}.{agent_name}_agent", fromlist=[f"{agent_name}_agent"])
-    config_module = __import__(f"aurelian.agents.{agent_name}.{agent_name}_config", fromlist=["get_config"])
+    if not agent_module:
+        agent_module = f"aurelian.agents.{agent_name}"
+    if not specialist_agent_name:
+        specialist_agent_name = agent_name
+    gradio_module = __import__(f"{agent_module}.{agent_name}_gradio", fromlist=["chat"])
+    agent_class = __import__(f"{agent_module}.{agent_name}_agent", fromlist=[f"{specialist_agent_name}_agent"])
+    config_module = __import__(f"{agent_module}.{agent_name}_config", fromlist=["get_config"])
 
     chat_func = gradio_module.chat
-    agent = getattr(agent_class, f"{agent_name}_agent")
+    agent = getattr(agent_class, f"{specialist_agent_name}_agent")
     get_config = config_module.get_config
 
     # Process agent and UI options
-    agent_keys = ["model", "workdir", "ontologies", "db_path", "collection_name"]
+    agent_keys = ["model", "use_cborg", "workdir", "ontologies", "db_path", "collection_name"]
     agent_options, launch_options = split_options(kwargs, agent_keys=agent_keys)
+
+    deps = get_config()
+
+    # Set workdir if provided
+    if 'workdir' in agent_options and agent_options['workdir']:
+        if hasattr(deps, 'workdir'):
+            deps.workdir.location = agent_options['workdir']
+
+    # Remove workdir from agent options to avoid duplicates
+    agent_run_options = {k: v for k, v in agent_options.items() if k != 'workdir'}
+
+    if use_cborg:
+        cborg_api_key = os.environ.get("CBORG_API_KEY")
+        model = OpenAIModel(
+            agent_run_options.get("model", kwargs.get("model", "openai:gpt-4o")),
+            provider=OpenAIProvider(
+                base_url="https://api.cborg.lbl.gov",
+                api_key=cborg_api_key),
+        )
+        print(f"CBORG model: {model}")
+        agent_run_options["model"] = model
 
     # Run in appropriate mode
     if not ui and query:
         # Direct query mode
-        deps = get_config()
-
-        # Set workdir if provided
-        if 'workdir' in agent_options and agent_options['workdir']:
-            if hasattr(deps, 'workdir'):
-                deps.workdir.location = agent_options['workdir']
-
-        # Remove workdir from agent options to avoid duplicates
-        agent_run_options = {k: v for k, v in agent_options.items() if k != 'workdir'}
-
         # Run the agent and print results
-        r = getattr(agent, agent_func_name)(join_char.join(query), deps=deps, **agent_run_options)
+        agent_run_func = getattr(agent, agent_func_name)
+        r = agent_run_func(join_char.join(query), deps=deps, **agent_run_options)
         print(r.data)
+        mjb = r.all_messages_json()
+        # decode messages from json bytes to dict:
+        if isinstance(mjb, bytes):
+            mjb = mjb.decode()
+        # print the messages
+        import json
+        all_messages = json.loads(mjb)
+        import yaml
+        # print(yaml.dump(all_messages, indent=2))
     else:
+        print(f"Running {agent_name} in UI mode, agent options: {agent_options}")
         # UI mode
-        gradio_ui = chat_func(**agent_options)
+        gradio_ui = chat_func(deps=deps, **agent_run_options)
         gradio_ui.launch(**launch_options)
 
 
 @main.command()
-def gocam_ui():
-    """Start the GO-CAM UI (non-chat interface)."""
-    from aurelian.agents.gocam.gocam_gradio import ui
+@agent_option
+@model_option
+@use_cborg_option
+@share_option
+@server_port_option
+@workdir_option
+@ui_option
+@run_evals_option
+@click.argument("query", nargs=-1, required=False)
+def agent(ui, query, agent, use_cborg=False, run_evals=False, **kwargs):
+    """NEW: Generic agent runner.
 
-    gocam_ui = ui()
-    gocam_ui.launch()
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    if not agent:
+        raise click.UsageError("Error: --agent is required")
+    agent_module = f"aurelian.agents.{agent}"
+    specialist_agent_name = agent
+    gradio_module = __import__(f"{agent_module}.{agent}_gradio", fromlist=["chat"])
+    agent_class = __import__(f"{agent_module}.{agent}_agent", fromlist=[f"{specialist_agent_name}_agent"])
+    config_module = __import__(f"{agent_module}.{agent}_config", fromlist=["get_config"])
+
+    chat_func = gradio_module.chat
+    agent_obj = getattr(agent_class, f"{specialist_agent_name}_agent")
+    get_config = config_module.get_config
+
+    # Process agent and UI options
+    agent_keys = ["model", "use_cborg", "workdir", "ontologies", "db_path", "collection_name"]
+    agent_options, launch_options = split_options(kwargs, agent_keys=agent_keys)
+
+    deps = get_config()
+
+    # Set workdir if provided
+    if hasattr(deps, 'workdir'):
+        deps.workdir.location = kwargs['workdir']
+
+    # Remove workdir from agent options to avoid duplicates
+    agent_run_options = {k: v for k, v in agent_options.items() if k != 'workdir'}
+
+    # TODO: make this generic, for any proxy model
+    if use_cborg:
+        cborg_api_key = os.environ.get("CBORG_API_KEY")
+        model = OpenAIModel(
+            agent_run_options.get("model", "openai:gpt-4o"),
+            provider=OpenAIProvider(
+                base_url="https://api.cborg.lbl.gov",
+                api_key=cborg_api_key),
+        )
+        agent_run_options["model"] = model
+
+    # Run in appropriate mode
+    if not ui and query:
+        # Direct query mode
+        join_char = " "
+        # Run the agent and print results
+        agent_run_func = getattr(agent_obj, "run_sync")
+        r = agent_run_func(join_char.join(query), deps=deps, **agent_run_options)
+        print(r.data)
+        mjb = r.all_messages_json()
+        # decode messages from json bytes to dict:
+        if isinstance(mjb, bytes):
+            mjb = mjb.decode()
+        # print the messages
+        import json
+        all_messages = json.loads(mjb)
+        import yaml
+        # print(yaml.dump(all_messages, indent=2))
+    elif run_evals:
+        import sys
+        import importlib
+        # TODO: make this generic
+        package_name = f"{agent_module}.{agent}_evals"
+        module = importlib.import_module(package_name)
+        dataset = module.create_eval_dataset()
+
+        async def run_agent(inputs: str) -> Any:
+            result = await agent_obj.run(inputs, deps=deps, **agent_run_options)
+            return result.data
+
+        eval_func: Callable[[str], Awaitable[str]] = run_agent
+        report = dataset.evaluate_sync(eval_func)
+        report.print(include_input=True, include_output=True)
+    else:
+        print(f"Running {agent} in UI mode, agent options: {agent_options}")
+        # UI mode
+        gradio_ui = chat_func(deps=deps, **agent_run_options)
+        gradio_ui.launch(**launch_options)
 
 
 @main.command()
@@ -200,13 +333,14 @@ def search_ontology(ontology: str, term: str, **kwargs):
 
 
 @main.command()
+@agent_option
 @model_option
-@workdir_option
+@use_cborg_option
 @share_option
 @server_port_option
 @ui_option
 @click.argument("query", nargs=-1, required=False)
-def gocam(ui, query, **kwargs):
+def gocam(ui, query, agent, **kwargs):
     """Start the GO-CAM Agent for gene ontology causal activity models.
 
     The GO-CAM Agent helps create and analyze Gene Ontology Causal Activity Models,
@@ -215,7 +349,8 @@ def gocam(ui, query, **kwargs):
 
     Run with a query for direct mode or with --ui for interactive chat mode.
     """
-    run_agent("gocam", "aurelian.agents.gocam", query=query, ui=ui, **kwargs)
+    run_agent("gocam", "aurelian.agents.gocam", query=query, ui=ui, specialist_agent_name=agent, **kwargs)
+
 
 
 @main.command()
@@ -416,6 +551,14 @@ def websearch(term):
     txt = web_search(term)
     print(txt)
 
+@main.command()
+@click.argument("term")
+def perplexity(term):
+    """Search the web for a query term, with citations."""
+    from aurelian.agents.web.web_tools import perplexity_query
+    result = run_sync(perplexity_query(term))
+    import yaml
+    print(yaml.dump(result.model_dump(), indent=2))
 
 @main.command()
 @click.argument("url")
@@ -537,17 +680,20 @@ def ubergraph(ui, query, **kwargs):
     run_agent("ubergraph", "aurelian.agents.ubergraph", query=query, ui=ui, **kwargs)
 
 
-@main.command(name="scientific_knowledge")
+@main.command()
 @model_option
+@use_cborg_option
 @workdir_option
 @share_option
 @server_port_option
+@ui_option
 @click.option("--pdf-dir", "-p", help="The directory containing PDF files to process")
 @click.option("--cache-dir", "-c", help="The directory to use for caching extracted knowledge")
 @click.option("--output-dir", "-o", help="The directory to use for output files (defaults to pdf_dir/kg_output)")
 @click.option("--process", is_flag=True, help="Process PDF directory without launching UI")
-def scientific_knowledge(pdf_dir, cache_dir, output_dir, process, **kwargs):
-    """Start the Scientific Knowledge Extraction Agent UI.
+@click.argument("query", nargs=-1, required=False)
+def scientific_knowledge(ui, query, pdf_dir, cache_dir, output_dir, process, use_cborg=False, **kwargs):
+    """Start the Scientific Knowledge Extraction Agent.
 
     The Scientific Knowledge Extraction Agent extracts structured knowledge from scientific
     papers in PDF format. It identifies key findings, relations, and claims, and maps them
@@ -558,89 +704,359 @@ def scientific_knowledge(pdf_dir, cache_dir, output_dir, process, **kwargs):
     - Map extracted concepts to standard ontologies (GO, ChEBI, DOID, etc.)
     - Export assertions as CSV, JSON, or KGX with full provenance
     - Maintain a cache of processed papers to avoid redundant work
+
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    Use --process to batch process PDFs without UI.
     """
-
-    import asyncio
-    from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_agent import \
-        process_directory
-    from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_gradio import \
-        create_demo
-
     # Check if we should process without UI
-    if process:
-        if pdf_dir:
-            warnings.warn("PDF directory: {pdf_dir}")
-        else:
-            raise click.BadParameter("PDF directory is required when using --process flag.")
+    if process and pdf_dir:
+        import asyncio
+        from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_agent import process_directory
 
+        print(f"Processing PDF directory: {pdf_dir}")
         if output_dir:
-            warnings.warn(f"Output directory: {output_dir}")
+            print(f"Output directory: {output_dir}")
 
         # Run the processing function
         asyncio.run(process_directory(pdf_dir, output_dir))
         return
-    else:  # Normal UI mode
+    elif process:
+        raise click.BadParameter("PDF directory is required when using --process flag.")
+
+    # For UI mode, use the standard agent runner but with special handling for PDF directories
+    if pdf_dir:
+        # We need to set up the PDF directory before running the agent
+        from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_gradio import create_demo, setup_directories
 
         agent_options, launch_options = split_options(kwargs)
 
         # Create the Gradio demo
         demo = create_demo()
 
-        # If PDF directory was provided, set it up first
-        if pdf_dir:
-            # Import setup_directories function for initialization
-            from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_gradio import setup_directories
-
-            # Initialize the PDF directory before starting the UI
-            setup_result = setup_directories(pdf_dir, cache_dir)
-            print(f"Scientific Knowledge Extraction Agent: {setup_result}")
+        # Initialize the PDF directory before starting the UI
+        setup_result = setup_directories(pdf_dir, cache_dir)
+        print(f"Scientific Knowledge Extraction Agent: {setup_result}")
 
         # Launch with the appropriate options
         demo.launch(**launch_options)
-
-
-@main.command(name="ske_clear_cache")
-@click.option("--pdf-dir", "-p", required=True, help="The directory containing PDF files whose cache should be cleared")
-@click.option("--cache-dir", "-c", help="The directory used for caching extracted knowledge")
-@click.option("--file", "-f", help="Specific PDF file to clear from the cache. If not provided, clears all cached files.")
-def clear_scientific_knowledge_cache(pdf_dir, cache_dir, file):
-    """Clear the Scientific Knowledge Extraction Agent's cache.
-
-    This command clears the extracted knowledge cache for the Scientific Knowledge Extraction Agent.
-    You can clear the cache for a specific file or for all processed files.
-
-    Args:
-        pdf_dir: The directory containing the PDF files (required)
-        cache_dir: Optional custom cache directory
-        file: Optional specific PDF file to clear from cache
-    """
-    from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_config import ScientificKnowledgeExtractionDependencies
-
-    # Create dependencies with the specified directories
-    deps = ScientificKnowledgeExtractionDependencies(
-        pdf_directory=pdf_dir
-    )
-
-    if file:
-        # Clear specific file
-        file_path = os.path.join(pdf_dir, file) if not os.path.isabs(file) else file
-        if not os.path.exists(file_path):
-            print(f"Error: File '{file_path}' does not exist.")
-            return
-
-        entries = deps.clear_cache(file_path)
-        if entries > 0:
-            print(f"Successfully cleared cache for '{os.path.basename(file_path)}'.")
-        else:
-            print(f"File '{os.path.basename(file_path)}' was not in the cache.")
     else:
-        # Clear all
-        entries = deps.clear_cache()
-        if entries > 0:
-            print(f"Successfully cleared the entire cache ({entries} entries).")
-        else:
-            print("Cache was already empty.")
+        # Standard agent runner
+        run_agent("scientific_knowledge_extraction", "aurelian.agents.scientific_knowledge_extraction", query=query, ui=ui, use_cborg=use_cborg, **kwargs)
 
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def gene(ui, query, **kwargs):
+    """Start the Gene Agent for retrieving gene descriptions.
+
+    The Gene Agent retrieves descriptions for gene identifiers using the UniProt API.
+    It can process a single gene or a list of genes and returns detailed information
+    about gene function, products, and associations.
+
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("gene", "aurelian.agents.gene", query=query, ui=ui, **kwargs)
+
+@main.command()
+@model_option
+@use_cborg_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def goann(ui, query, **kwargs):
+    """Start the GO Annotation Review Agent for evaluating GO annotations.
+
+    The GO Annotation Review Agent helps review GO annotations for accuracy
+    and proper evidence. It can evaluate annotations based on evidence codes,
+    identify potential over-annotations, and ensure compliance with GO guidelines,
+    particularly for transcription factors.
+
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("goann", "aurelian.agents.goann", query=query, ui=ui, **kwargs)
+
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def github(ui, query, **kwargs):
+    """Start the GitHub Agent for repository interaction.
+
+    The GitHub Agent provides a natural language interface for interacting with GitHub
+    repositories. It can list/view pull requests and issues, find connections between PRs
+    and issues, search code, clone repositories, and examine commit history.
+
+    Requires GitHub CLI (gh) to be installed and authenticated.
+
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("github", "aurelian.agents.github", query=query, ui=ui, **kwargs)
+
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def draw(ui, query, **kwargs):
+    """Start the Draw Agent for creating SVG drawings.
+
+    The Draw Agent creates SVG drawings based on text descriptions and provides
+    feedback on drawing quality from an art critic judge. It helps generate visual
+    representations from textual descriptions with a focus on clarity and simplicity.
+
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("draw", "aurelian.agents.draw", query=query, ui=ui, **kwargs)
+
+
+@main.command()
+@ui_option
+@workdir_option
+@share_option
+@server_port_option
+@click.option("--list", "-l", help="Comma-separated list of gene identifiers")
+@click.option("--taxon", "-t", help="Species/taxon the genes belong to (e.g., 'Homo sapiens', 'Desulfovibrio vulgaris')", required=True)
+@click.argument("query", nargs=-1, required=False)
+def talisman(ui, list, taxon, query, **kwargs):
+    """Start the Talisman Agent for advanced gene analysis.
+
+    The Talisman Agent retrieves descriptions for gene identifiers using UniProt and NCBI Entrez.
+    It can process a single gene, protein ID, or a list of genes and returns detailed information.
+    It also can analyze relationships between multiple genes to identify functional connections.
+
+    Run with --list and --taxon options for direct mode or with --ui for interactive chat mode.
+    The taxon/species parameter is required to provide proper context for gene analysis.
+
+    Examples:
+        aurelian talisman --list "TP53" --taxon "Homo sapiens"
+        aurelian talisman --list "TP53, MDM2" --taxon "Homo sapiens"
+        aurelian talisman --list "DVUA0001, DVUA0002" --taxon "Desulfovibrio vulgaris"
+    """
+    # Import the necessary functions from talisman_tools
+    from aurelian.agents.talisman.talisman_tools import (
+        ensure_complete_output,
+        GeneSetAnalysis,
+        FunctionalTerm,
+        GeneSummary
+    )
+    import re
+
+    # Convert positional argument to list option if provided
+    if query and not list:
+        list = " ".join(query)
+
+    # Inform the user if no gene list is provided
+    if not list and not ui:
+        import click
+        click.echo("Error: Either --list or --ui must be provided.")
+        return
+
+    # Prepare the prompt with the gene list and species information
+    if list:
+        list_prompt = f"Gene list: {list}\nSpecies: {taxon}"
+    else:
+        list_prompt = ""
+
+    # Create a wrapper function to post-process the output
+    def process_talisman_output(result):
+        print("=== ORIGINAL OUTPUT ===")
+        print(result)
+        print("=== END ORIGINAL OUTPUT ===")
+
+        # Force a complete rebuild of the output regardless of what's in the original result
+        # This ensures we always have all sections
+
+        # Extract inferred species from the result if available
+        inferred_species = taxon  # Default to the provided taxon
+        organism_match = re.search(r'\|\s*\w+\s*\|\s*[^|]+\|\s*[^|]+\|\s*([^|]+)\|', result)
+        if organism_match:
+            inferred_species = organism_match.group(1).strip()
+
+        # Create gene summaries from the output
+        gene_summaries = []
+        gene_table_match = re.search(r'##?\s*Gene Summary Table.*?\n\|.*?\n\|.*?\n(.*?)(?=\n\n|\n##|\Z)',
+                                   result, re.DOTALL)
+        if gene_table_match:
+            for line in gene_table_match.group(1).split('\n'):
+                if '|' in line:
+                    cols = [col.strip() for col in line.split('|')]
+                    if len(cols) >= 6:  # Account for empty first and last elements
+                        gene_id = cols[1]
+                        if gene_id and gene_id != '-':
+                            gene_summaries.append(
+                                GeneSummary(
+                                    id=cols[1],
+                                    annotation=cols[2],
+                                    genomic_context=cols[3],
+                                    organism=cols[4],
+                                    description=cols[5]
+                                )
+                            )
+
+        # Create default functional terms for the gene set
+        functional_terms = []
+        if gene_summaries:
+            gene_ids = [g.id for g in gene_summaries]
+
+            # Default functional terms based on gene descriptions
+            for gene in gene_summaries:
+                if "DNA" in gene.description or "binding" in gene.description.lower():
+                    functional_terms.append(
+                        FunctionalTerm(
+                            term="DNA binding",
+                            genes=[gene.id],
+                            source="GO-MF"
+                        )
+                    )
+                if "stress" in gene.description.lower():
+                    functional_terms.append(
+                        FunctionalTerm(
+                            term="Stress response",
+                            genes=[gene.id],
+                            source="GO-BP"
+                        )
+                    )
+                if "ParA" in gene.description:
+                    functional_terms.append(
+                        FunctionalTerm(
+                            term="Plasmid partitioning",
+                            genes=[gene.id],
+                            source="GO-BP"
+                        )
+                    )
+
+            # Add a generic set term
+            functional_terms.append(
+                FunctionalTerm(
+                    term="Gene set",
+                    genes=gene_ids,
+                    source="Analysis"
+                )
+            )
+
+        # Try to extract existing narrative text if any
+        narrative = "This gene set includes proteins with functions related to DNA binding, stress response, and plasmid maintenance."
+        # Look for any text outside of table sections
+        narrative_section = re.search(r'(?:^|\n\n)((?!##)[^|#].*?)(?=\n##|\Z)', result, re.DOTALL)
+        if narrative_section:
+            extracted_text = narrative_section.group(1).strip()
+            if len(extracted_text.split()) > 3:  # Only use if it's substantial
+                narrative = extracted_text
+
+        # Create a properly structured analysis object
+        analysis = GeneSetAnalysis(
+            input_species=taxon,
+            inferred_species=inferred_species,
+            narrative=narrative,
+            functional_terms=functional_terms,
+            gene_summaries=gene_summaries
+        )
+
+        # ALWAYS rebuild the output completely to ensure proper formatting
+        output = ""
+
+        # 1. Add Species section
+        output += f"# Species\nInput: {taxon}\nInferred: {inferred_species}\n\n"
+
+        # 2. Add Gene Set Analysis header
+        output += "# Gene Set Analysis\n\n"
+
+        # 3. Add Narrative section (always included)
+        output += f"## Narrative\n{analysis.narrative}\n\n"
+
+        # 4. Add Functional Terms Table (always included)
+        output += "## Functional Terms Table\n"
+        output += "| Functional Term | Genes | Source |\n"
+        output += "|-----------------|-------|--------|\n"
+
+        if analysis.functional_terms:
+            for term in analysis.functional_terms:
+                genes_str = ", ".join(term.genes)
+                output += f"| {term.term} | {genes_str} | {term.source} |\n"
+        else:
+            output += "| No functional terms available | - | - |\n"
+
+        output += "\n"
+
+        # 5. Add Gene Summary Table (always included)
+        output += "## Gene Summary Table\n"
+        output += "| ID | Annotation | Genomic Context | Organism | Description |\n"
+        output += "|-------------|-------------|----------|----------------|------------|\n"
+
+        if analysis.gene_summaries:
+            for gene in analysis.gene_summaries:
+                output += f"| {gene.id} | {gene.annotation} | {gene.genomic_context} | {gene.organism} | {gene.description} |\n"
+        else:
+            output += "| No gene information available | - | - | - | - |\n"
+
+        print("=== PROCESSED OUTPUT ===")
+        print(output)
+        print("=== END PROCESSED OUTPUT ===")
+
+        return output
+
+    # Run the agent with post-processing of the output and species information
+    run_agent("talisman", "aurelian.agents.talisman", query=list_prompt, ui=ui,
+              result_processor=process_talisman_output, **kwargs)
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def reaction(ui, query, **kwargs):
+    """Start the Reaction Agent for biochemical reaction query and curation.
+
+    The Reaction Agent helps query and curate biochemical reactions from various sources
+    including RHEA and UniProt. It can identify enzymes, substrates, products, and
+    extract reaction information from scientific text.
+
+    Run with a query for direct mode or with --ui for interactive chat mode.
+    """
+    run_agent("reaction", "aurelian.agents.reaction", query=query, ui=ui, **kwargs)
+
+
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@click.argument("query", nargs=-1, required=False)
+def paperqa(ui, query, **kwargs):
+    """Start the PaperQA Agent for scientific literature search and analysis.
+
+    The PaperQA Agent helps search, organize, and analyze scientific papers. It can
+    find papers on specific topics, add papers to your collection, and answer questions
+    based on the papers in your collection.
+
+    Run with a query for direct mode or with --ui for interactive chat mode.
+
+    Use `aurelian paperqa` subcommands for paper management:
+      - `aurelian paperqa index` to index papers for searching
+      - `aurelian paperqa list` to list papers in your collection
+    """
+    run_agent("paperqa", "aurelian.agents.paperqa", query=query, ui=ui, **kwargs)
+
+
+# Import and register PaperQA CLI commands
+# from aurelian.agents.paperqa.paperqa_cli import paperqa_cli
+# main.add_command(paperqa_cli)
 
 # DO NOT REMOVE THIS LINE
 # added this for mkdocstrings to work

@@ -1,3 +1,6 @@
+[project]
+name = "aurelian"
+
 [tool.poetry]
 name = "aurelian"
 version = "0.1.0"
@@ -16,21 +19,24 @@ linkml-store = {extras = ["llm", "mongodb"], version = ">=0.2.4"}
 rdkit = {optional=true, version="*"}
 gocam = {optional=true, version="*"}
 linkml = {optional=true, version="*"}
-gradio = {optional=true, version=">=4.0.0"}
-pydantic-ai = ">=0.0.29"
+gradio = "^5.23.3"
+pydantic-ai = ">=0.2.0"
 logfire = ">=3.5.3"
 bs4 = ">=0.0.2"
 duckduckgo-search = ">=7.3.2"
 markdownify = ">=0.14.1"
 wikipedia = ">=1.4.0"
-markitdown = ">=0.0.1a4"
-pypaperbot = ">=1.4.1"
+onnxruntime = "<=1.19.0"
+markitdown = ">=0.1.1"
+pypaperbot = {optional=true, version=">=1.4.1"}
 undetected-chromedriver = ">=3.5.5"
 bioservices = ">=1.12.0"
 pdfminer-six = {optional=true, version="*"}
 mcp = {extras = ["cli"], version = "^1.3.0"}
 pytest-asyncio = "^0.25.3"
 biolink-model = "^4.2.5"
+cairosvg = "^2.7.1"
+paper-qa = "^5.20.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = {version = ">=8.3.2"}
@@ -53,6 +59,7 @@ bioservices = ["bioservices"]
 linkml = ["linkml"]
 chem = ["rdkit"]
 pdfminer = ["pdfminer-six"]
+pypaperbot = ["pypaperbot"]
 
 [tool.pytest.ini_options]
 markers = [
@@ -77,6 +84,7 @@ typer = ">=0.9.0"  # Required for mkdocs-click
 
 [tool.poetry.scripts]
 aurelian = "aurelian.cli:main"
+aurelian-mcp-gocam = "aurelian.agents.gocam.gocam_mcp:main"
 
 [tool.poetry-dynamic-versioning]
 enable = true

@@ -1,7 +1,7 @@
 """
 Gradio interface for the RAG agent.
 """
-from typing import List
+from typing import List, Optional
 
 import gradio as gr
 
@@ -36,19 +36,21 @@ async def get_info(query: str, history: List[str], deps: RagDependencies, model:
     return result.data
 
 
-def chat(model=None, **kwargs):
+def chat(deps: Optional[RagDependencies] = None, model=None, **kwargs):
     """
     Create a Gradio chat interface for the RAG agent.
     
     Args:
+        deps: Optional dependencies configuration
         model: Optional model override
         kwargs: Additional keyword arguments for dependencies
         
     Returns:
         A Gradio ChatInterface
     """
-    # Initialize dependencies
-    deps = get_config(**kwargs) if kwargs else RagDependencies(**kwargs)
+    # Initialize dependencies if needed
+    if deps is None:
+        deps = get_config(**kwargs) if kwargs else RagDependencies(**kwargs)
     
     def get_info_wrapper(query: str, history: List[str]) -> str:
         """Wrapper for the async get_info function."""

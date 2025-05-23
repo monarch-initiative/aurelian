@@ -62,7 +62,7 @@ def search_ontology(adapter: BasicOntologyInterface, query: str, limit=10):
 
     collection = get_collection_for_adapter(handle, local_name)
     with logfire.span("search_ontology {name} {query}", name=name, query=query):
-        logfire.info(f"Searching {scheme}:{name} for {query}")
+        print(f"Searching {scheme}:{name} for {query}")
         qr = collection.search(query, limit=limit, index_name="llm")
         objs = [(obj["id"], obj["label"]) for obj in qr.rows]
     return objs

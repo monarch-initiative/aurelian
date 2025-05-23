@@ -1,7 +1,7 @@
 """
 Gradio UI for the literature agent.
 """
-from typing import List
+from typing import List, Optional
 
 import gradio as gr
 
@@ -10,18 +10,21 @@ from aurelian.agents.literature.literature_config import LiteratureDependencies
 from aurelian.utils.async_utils import run_sync
 
 
-def chat(workdir: str = None, **kwargs):
+def chat(deps: Optional[LiteratureDependencies] = None, workdir: str = None, **kwargs):
     """
     Initialize a chat interface for the literature agent.
     
     Args:
+        deps: Optional dependencies configuration
         workdir: Optional working directory path
         **kwargs: Additional arguments to pass to the agent
         
     Returns:
         A Gradio chat interface
     """
-    deps = LiteratureDependencies()
+    if deps is None:
+        deps = LiteratureDependencies()
+        
     if workdir:
         deps.workdir.location = workdir
 

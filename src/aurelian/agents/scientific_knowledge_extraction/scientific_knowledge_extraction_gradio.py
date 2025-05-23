@@ -537,6 +537,30 @@ def create_demo():
     return demo
 
 
+def chat(deps=None, **agent_options):
+    """Create a chat interface compatible with the standard agent runner."""
+    if deps:
+        # Use provided dependencies to configure the agent
+        state.dependencies = deps
+        state.pdf_directory = deps.pdf_directory
+        state.cache_directory = getattr(deps, 'cache_directory', None)
+        
+        # Get initial list of PDFs
+        pdf_files = []
+        for filename in os.listdir(deps.pdf_directory):
+            if filename.lower().endswith('.pdf'):
+                file_path = os.path.join(deps.pdf_directory, filename)
+                pdf_files.append({
+                    "file_path": file_path,
+                    "filename": filename,
+                    "is_processed": False  # We don't have cache info in simple deps
+                })
+        
+        state.current_pdfs = pdf_files
+    
+    return create_demo()
+
+
 # For direct execution
 if __name__ == "__main__":
     demo = create_demo()
