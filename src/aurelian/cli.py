@@ -618,8 +618,7 @@ def clear_scientific_knowledge_cache(pdf_dir, cache_dir, file):
 
     # Create dependencies with the specified directories
     deps = ScientificKnowledgeExtractionDependencies(
-        pdf_directory=pdf_dir,
-        cache_directory=cache_dir
+        pdf_directory=pdf_dir
     )
 
     if file:
