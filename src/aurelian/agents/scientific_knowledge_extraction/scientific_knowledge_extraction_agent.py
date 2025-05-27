@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 from pydantic_ai import Agent, Tool
 
 from pydantic_ai.agent import Agent
-from pydantic_ai.models import models
+from pydantic_ai import models
 
 from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_config import ScientificKnowledgeExtractionDependencies
 from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_tools import (
