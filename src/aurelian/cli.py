@@ -709,7 +709,10 @@ def scientific_knowledge(ui, query, pdf_dir, cache_dir, output_dir, process, use
     Use --process to batch process PDFs without UI.
     """
     # Check if we should process without UI
-    if process and pdf_dir:
+    if process:
+        if not pdf_dir:
+            raise click.BadParameter("PDF directory is required when using --process flag.")
+
         import asyncio
         from aurelian.agents.scientific_knowledge_extraction.scientific_knowledge_extraction_agent import process_directory
 
@@ -720,8 +723,6 @@ def scientific_knowledge(ui, query, pdf_dir, cache_dir, output_dir, process, use
         # Run the processing function
         asyncio.run(process_directory(pdf_dir, output_dir))
         return
-    elif process:
-        raise click.BadParameter("PDF directory is required when using --process flag.")
 
     # For UI mode, use the standard agent runner but with special handling for PDF directories
     if pdf_dir:
