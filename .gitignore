@@ -138,3 +138,6 @@ dmypy.json
 .pyre/
 tests/data/*_pdfs/
 
+# Knowledge graph output directories under tests
+tests/**/kg_output/
+
