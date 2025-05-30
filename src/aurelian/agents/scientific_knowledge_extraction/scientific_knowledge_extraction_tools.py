@@ -10,7 +10,6 @@ import asyncio
 from typing import Dict, List, Optional, Any
 import re
 from dataclasses import dataclass
-import datetime
 
 from pydantic_ai import RunContext, ModelRetry
 
@@ -203,27 +202,255 @@ async def _extract_knowledge_from_chunk(
     text_chunk: str, 
     metadata: Dict[str, Any]
 ) -> List[KnowledgeEdge]:
-    """Extract knowledge edges from a chunk of text."""
-    # This is a placeholder that would be replaced with actual LLM-based extraction
-    # In a real implementation, we would:
-    # 1. Use an LLM to identify subject-predicate-object triples in the text
-    # 2. Format them as KnowledgeEdge objects
+    """
+    Extract knowledge edges from a chunk of text using LLM-based extraction.
     
-    # For demo purposes, we'll create a dummy edge if certain keywords are found
-    edges = []
+    This implementation uses:
+    1. LLM to extract knowledge triples from scientific text
+    2. OAK for entity grounding to OBO ontologies
+    3. Biolink Model for relationship typing
+    """
+    from typing import List, Any, Dict, Optional
     
-    if "alzheimer" in text_chunk.lower() or "amyloid" in text_chunk.lower():
-        # Create a simple edge about Alzheimer's disease
-        edge = KnowledgeEdge(
-            subject="Amyloid beta",
-            predicate="associated_with",
-            object="Alzheimer's disease",
-            source_id=metadata.get("doi"),
-            source_title=metadata.get("title"),
-            evidence_text=text_chunk[:200] + "...",  # First 200 chars as evidence
-            confidence=0.8
-        )
-        edges.append(edge)
+    # Define base models without pydantic_ai.AIModel which may not be available
+    class BaseModel:
+        """Base model to replace pydantic_ai.AIModel."""
+        subject: str
+        predicate: str
+        object: str
+        evidence_text: str
+        subject_type: Optional[str] = None
+        object_type: Optional[str] = None
+        confidence: float = 0.0
+        
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    # Import ontology utilities
+    try:
+        from aurelian.utils.ontology_utils import search_ontology
+        from oaklib import get_adapter
+        HAVE_OAK = True
+    except ImportError:
+        HAVE_OAK = False
+        print("Warning: oaklib not found. Entity grounding will be limited.")
+    
+    # Initialize commonly used ontology adapters
+    ontology_adapters: Dict[str, Any] = {}
+    if HAVE_OAK:
+        try:
+            # Common biomedical ontologies
+            ontologies = ["MONDO", "HP", "GO", "CHEBI", "PR", "UBERON", "CL"]
+            for ont in ontologies:
+                try:
+                    ontology_adapters[ont] = get_adapter(f"sqlite:obo:{ont.lower()}")
+                except Exception as e:
+                    print(f"Failed to load {ont} ontology: {str(e)}")
+        except Exception as e:
+            print(f"Error initializing ontology adapters: {str(e)}")
+    
+    # Create prompt for knowledge extraction
+    extraction_prompt = f"""
+    Extract scientific knowledge assertions from the following text in the form of subject-predicate-object triples.
+    Focus on biomedical relationships like:
+    - Gene/protein interactions or regulations
+    - Molecular functions and processes
+    - Disease mechanisms and associations
+    - Chemical interactions and effects
+    
+    For each triple:
+    1. Identify the SUBJECT (biological entity like gene, protein, chemical)
+    2. Identify the PREDICATE (relationship type like increases, inhibits, associated_with)
+    3. Identify the OBJECT (another biological entity)
+    4. Include the specific text that provides evidence for this triple
+    5. Categorize the entity types if possible (gene, protein, disease, chemical, etc.)
+    
+    Text:
+    {text_chunk}
+    
+    Extract as many distinct knowledge triples as you can reliably identify in the text.
+    Use specific, precise predicates rather than generic ones when possible.
+    
+    Return your answer as a JSON object with the following structure:
+    {{
+      "triples": [
+        {{
+          "subject": "entity name",
+          "predicate": "relationship type",
+          "object": "entity name",
+          "evidence_text": "text passage supporting this relationship",
+          "subject_type": "optional entity type",
+          "object_type": "optional entity type",
+          "confidence": 0.8
+        }}
+      ]
+    }}
+    """
+    
+    edges: List[KnowledgeEdge] = []
+    
+    try:
+        # Run LLM extraction using the model directly since we can't use AIModel
+        model = getattr(ctx, 'model', "gpt-4o")
+        
+        # Get the direct client from the context if available
+        if hasattr(ctx, 'dependencies') and hasattr(ctx.dependencies, 'client'):
+            client = ctx.dependencies.client
+            extraction_result_text = await client.complete(extraction_prompt, model=model)
+            
+            # Parse the JSON response
+            import json
+            import re
+            
+            # Try to extract JSON from the response
+            json_match = re.search(r'```json\s*(.*?)\s*```', extraction_result_text, re.DOTALL)
+            if json_match:
+                extraction_json = json_match.group(1)
+            else:
+                # Try to find JSON without code blocks
+                json_match = re.search(r'({.*})', extraction_result_text, re.DOTALL)
+                if json_match:
+                    extraction_json = json_match.group(1)
+                else:
+                    extraction_json = extraction_result_text
+            
+            try:
+                extraction_data = json.loads(extraction_json)
+                triples = extraction_data.get("triples", [])
+            except json.JSONDecodeError:
+                print("Failed to parse JSON from LLM response")
+                triples = []
+        else:
+            # If we don't have a client, return empty results
+            print("No LLM client available in context")
+            return edges
+        
+        if not triples:
+            # Fallback if no triples extracted
+            return edges
+        
+        # Process each extracted triple
+        for triple_data in triples:
+            triple = BaseModel(**triple_data)
+            
+            # Ground subject and object to ontologies
+            subject_curie = None
+            object_curie = None
+            predicate_curie = None
+            
+            if HAVE_OAK:
+                # Try to ground subject based on its type
+                subject_type = triple.subject_type or "unknown"
+                object_type = triple.object_type or "unknown"
+                
+                # Map entity types to likely ontologies
+                ontology_mapping = {
+                    "gene": ["PR", "GO"],
+                    "protein": ["PR", "UNIPROT"],
+                    "disease": ["MONDO", "HP"],
+                    "phenotype": ["HP"],
+                    "chemical": ["CHEBI"],
+                    "drug": ["CHEBI", "DRUGBANK"],
+                    "pathway": ["GO"],
+                    "cell": ["CL"],
+                    "tissue": ["UBERON"],
+                    "process": ["GO"],
+                    "function": ["GO"],
+                }
+                
+                # Get candidate ontologies for subject and object
+                subject_ontologies = ontology_mapping.get(subject_type.lower(), ["MONDO", "GO", "CHEBI", "PR"])
+                object_ontologies = ontology_mapping.get(object_type.lower(), ["MONDO", "GO", "CHEBI", "PR"])
+                
+                # Try to ground subject
+                for ont in subject_ontologies:
+                    if ont in ontology_adapters:
+                        try:
+                            # Search for the subject term in the appropriate ontology
+                            results = await asyncio.to_thread(
+                                search_ontology,
+                                ontology_adapters[ont],
+                                triple.subject,
+                                limit=1
+                            )
+                            if results and len(results) > 0:
+                                subject_curie = results[0][0]  # Get the ID
+                                break
+                        except Exception as e:
+                            print(f"Error grounding subject to {ont}: {str(e)}")
+                
+                # Try to ground object
+                for ont in object_ontologies:
+                    if ont in ontology_adapters:
+                        try:
+                            # Search for the object term in the appropriate ontology
+                            results = await asyncio.to_thread(
+                                search_ontology,
+                                ontology_adapters[ont],
+                                triple.object,
+                                limit=1
+                            )
+                            if results and len(results) > 0:
+                                object_curie = results[0][0]  # Get the ID
+                                break
+                        except Exception as e:
+                            print(f"Error grounding object to {ont}: {str(e)}")
+            
+            # Map predicate to Biolink
+            if HAVE_BIOLINK_MODEL:
+                # Map common relationship types to Biolink predicates
+                predicate_mapping = {
+                    "increases": "biolink:increases_amount_or_activity_of",
+                    "decreases": "biolink:decreases_amount_or_activity_of",
+                    "activates": "biolink:activates",
+                    "inhibits": "biolink:inhibits",
+                    "binds": "biolink:physically_interacts_with",
+                    "interacts": "biolink:interacts_with",
+                    "associated": "biolink:associated_with",
+                    "causes": "biolink:causes",
+                    "treats": "biolink:treats",
+                    "expressed_in": "biolink:expressed_in",
+                    "located_in": "biolink:located_in",
+                    "part_of": "biolink:part_of",
+                    "has_part": "biolink:has_part",
+                    "regulates": "biolink:regulates",
+                    "positively_regulates": "biolink:positively_regulates",
+                    "negatively_regulates": "biolink:negatively_regulates",
+                    "affects": "biolink:affects",
+                }
+                
+                # Look for the predicate in the mapping
+                for key, value in predicate_mapping.items():
+                    if key in triple.predicate.lower():
+                        predicate_curie = value
+                        break
+                
+                # Fallback to related_to if no mapping found
+                if not predicate_curie:
+                    predicate_curie = "biolink:related_to"
+            
+            # Create knowledge edge
+            edge = KnowledgeEdge(
+                subject=triple.subject,
+                predicate=triple.predicate,
+                object=triple.object,
+                subject_curie=subject_curie,
+                predicate_curie=predicate_curie,
+                object_curie=object_curie,
+                source_id=metadata.get("doi"),
+                source_title=metadata.get("title"),
+                evidence_text=triple.evidence_text,
+                confidence=getattr(triple, 'confidence', 0.7)
+            )
+            edges.append(edge)
+    
+    except Exception as e:
+        # Log the error but don't create fallback edges
+        print(f"Error in knowledge extraction: {str(e)}")
+        # Just raise a warning and return empty edges list
+        import warnings
+        warnings.warn(f"Knowledge extraction failed: {str(e)}")
     
     return edges
 
