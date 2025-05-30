@@ -34,7 +34,7 @@ bioservices = ">=1.12.0"
 pdfminer-six = {optional=true, version="*"}
 mcp = {extras = ["cli"], version = "^1.3.0"}
 pytest-asyncio = "^0.25.3"
-biolink-model = "^4.2.5"
+biolink-model = {optional=true, version="^4.2.5"}
 cairosvg = "^2.7.1"
 paper-qa = "^5.20.0"
 
@@ -60,6 +60,7 @@ linkml = ["linkml"]
 chem = ["rdkit"]
 pdfminer = ["pdfminer-six"]
 pypaperbot = ["pypaperbot"]
+biolink-model = ["biolink-model"]
 
 [tool.pytest.ini_options]
 markers = [
