@@ -67,16 +67,16 @@ scientific_knowledge_extraction_agent = Agent(
     model="openai:gpt-4o",
     deps_type=ScientificKnowledgeExtractionDependencies,
     system_prompt=SYSTEM_PROMPT,
-    tools=[
-        Tool(list_pdf_files),
-        Tool(read_pdf),
-        Tool(extract_knowledge),
-        Tool(ground_to_ontology),
-        Tool(map_to_biolink),
-        Tool(create_kg_edges),
-        Tool(export_to_kgx)
-    ]
 )
+
+# Register tools with the agent
+scientific_knowledge_extraction_agent.tool(list_pdf_files)
+scientific_knowledge_extraction_agent.tool(read_pdf)
+scientific_knowledge_extraction_agent.tool(extract_knowledge)
+scientific_knowledge_extraction_agent.tool(ground_to_ontology)
+scientific_knowledge_extraction_agent.tool(map_to_biolink)
+scientific_knowledge_extraction_agent.tool(create_kg_edges)
+scientific_knowledge_extraction_agent.tool(export_to_kgx)
 
 
 # CLI helper to process a directory of PDFs

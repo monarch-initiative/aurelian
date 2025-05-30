@@ -210,22 +210,11 @@ async def _extract_knowledge_from_chunk(
     2. OAK for entity grounding to OBO ontologies
     3. Biolink Model for relationship typing
     """
-    from typing import List, Any, Dict, Optional
-    
-    # Define base models without pydantic_ai.AIModel which may not be available
-    class BaseModel:
-        """Base model to replace pydantic_ai.AIModel."""
-        subject: str
-        predicate: str
-        object: str
-        evidence_text: str
-        subject_type: Optional[str] = None
-        object_type: Optional[str] = None
-        confidence: float = 0.0
-        
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
+    from typing import List, Any, Dict
+    import json
+    import re
+    import os
+    import openai
     
     # Import ontology utilities
     try:
@@ -291,59 +280,66 @@ async def _extract_knowledge_from_chunk(
     edges: List[KnowledgeEdge] = []
     
     try:
-        # Run LLM extraction using the model directly since we can't use AIModel
-        model = getattr(ctx, 'model', "gpt-4o")
+        # Extract triples using OpenAI API directly
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable not set")
+            
+        # Configure the client
+        client = openai.AsyncOpenAI(api_key=api_key)
         
-        # Get the direct client from the context if available
-        if hasattr(ctx, 'dependencies') and hasattr(ctx.dependencies, 'client'):
-            client = ctx.dependencies.client
-            extraction_result_text = await client.complete(extraction_prompt, model=model)
-            
-            # Parse the JSON response
-            import json
-            import re
-            
-            # Try to extract JSON from the response
-            json_match = re.search(r'```json\s*(.*?)\s*```', extraction_result_text, re.DOTALL)
-            if json_match:
+        # Call the API
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a scientific knowledge extraction system that identifies relationships in biomedical text."},
+                {"role": "user", "content": extraction_prompt}
+            ],
+            temperature=0.2,
+        )
+        
+        # Get the response text
+        extraction_result_text = response.choices[0].message.content
+        
+        # Try to extract JSON from the response
+        json_match = re.search(r'```json\s*(.*?)\s*```', extraction_result_text, re.DOTALL)
+        if json_match and json_match.group(1):
+            extraction_json = json_match.group(1)
+        else:
+            # Try to find JSON without code blocks
+            json_match = re.search(r'({.*})', extraction_result_text, re.DOTALL)
+            if json_match and json_match.group(1):
                 extraction_json = json_match.group(1)
             else:
-                # Try to find JSON without code blocks
-                json_match = re.search(r'({.*})', extraction_result_text, re.DOTALL)
-                if json_match:
-                    extraction_json = json_match.group(1)
-                else:
-                    extraction_json = extraction_result_text
-            
-            try:
-                extraction_data = json.loads(extraction_json)
-                triples = extraction_data.get("triples", [])
-            except json.JSONDecodeError:
-                print("Failed to parse JSON from LLM response")
-                triples = []
-        else:
-            # If we don't have a client, return empty results
-            print("No LLM client available in context")
-            return edges
+                extraction_json = extraction_result_text
         
+        try:
+            extraction_data = json.loads(extraction_json)
+            triples = extraction_data.get("triples", [])
+        except json.JSONDecodeError:
+            print("Failed to parse JSON from LLM response")
+            triples = []
+            
         if not triples:
-            # Fallback if no triples extracted
+            # No triples extracted
             return edges
         
         # Process each extracted triple
         for triple_data in triples:
-            triple = BaseModel(**triple_data)
-            
             # Ground subject and object to ontologies
+            subject = triple_data.get("subject", "")
+            predicate = triple_data.get("predicate", "")
+            object_val = triple_data.get("object", "")
+            evidence_text = triple_data.get("evidence_text", "")
+            subject_type = triple_data.get("subject_type", "unknown")
+            object_type = triple_data.get("object_type", "unknown")
+            confidence = triple_data.get("confidence", 0.7)
+            
             subject_curie = None
             object_curie = None
             predicate_curie = None
             
             if HAVE_OAK:
-                # Try to ground subject based on its type
-                subject_type = triple.subject_type or "unknown"
-                object_type = triple.object_type or "unknown"
-                
                 # Map entity types to likely ontologies
                 ontology_mapping = {
                     "gene": ["PR", "GO"],
@@ -371,7 +367,7 @@ async def _extract_knowledge_from_chunk(
                             results = await asyncio.to_thread(
                                 search_ontology,
                                 ontology_adapters[ont],
-                                triple.subject,
+                                subject,
                                 limit=1
                             )
                             if results and len(results) > 0:
@@ -388,7 +384,7 @@ async def _extract_knowledge_from_chunk(
                             results = await asyncio.to_thread(
                                 search_ontology,
                                 ontology_adapters[ont],
-                                triple.object,
+                                object_val,
                                 limit=1
                             )
                             if results and len(results) > 0:
@@ -422,7 +418,7 @@ async def _extract_knowledge_from_chunk(
                 
                 # Look for the predicate in the mapping
                 for key, value in predicate_mapping.items():
-                    if key in triple.predicate.lower():
+                    if key in predicate.lower():
                         predicate_curie = value
                         break
                 
@@ -432,16 +428,16 @@ async def _extract_knowledge_from_chunk(
             
             # Create knowledge edge
             edge = KnowledgeEdge(
-                subject=triple.subject,
-                predicate=triple.predicate,
-                object=triple.object,
+                subject=subject,
+                predicate=predicate,
+                object=object_val,
                 subject_curie=subject_curie,
                 predicate_curie=predicate_curie,
                 object_curie=object_curie,
                 source_id=metadata.get("doi"),
                 source_title=metadata.get("title"),
-                evidence_text=triple.evidence_text,
-                confidence=getattr(triple, 'confidence', 0.7)
+                evidence_text=evidence_text,
+                confidence=confidence
             )
             edges.append(edge)
     
