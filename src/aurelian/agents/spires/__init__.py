@@ -1,0 +1,1 @@
+"""SPIRES agent for structured knowledge extraction from text using OntoGPT."""
