@@ -13,15 +13,19 @@ from aurelian.agents.paperqa.paperqa_config import PaperQADependencies
 class SPIRESDependencies(HasWorkdir):
     """Configuration for the SPIRES agent."""
 
+    # Required parameters (without defaults) must come first
     template_name: str = field(
-        metadata={"description": "OntoGPT template to use for extraction. Required. Options: biological_process.BiologicalProcess, gocam.GoCamAnnotations, drug.DrugMechanism, human_phenotype.HumanPhenotype"}
+        default="biological_process.BiologicalProcess",
+        metadata={"description": "OntoGPT template to use for extraction. Options: biological_process.BiologicalProcess, gocam.GoCamAnnotations, drug.DrugMechanism, human_phenotype.HumanPhenotype"}
     )
     
     model: str = field(
+        default="gpt-4o",
         metadata={"description": "LLM model to use for SPIRES extraction. Should match PaperQA model for consistency."}
     )
     
     model_provider: str = field(
+        default="openai",
         metadata={"description": "Model provider. Options: openai, azure, ollama. Should match PaperQA provider."}
     )
     
