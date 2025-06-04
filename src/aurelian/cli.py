@@ -1015,7 +1015,7 @@ def knowledge_agent(ui, model, text, template, **kwargs):
     if not template:
         raise click.UsageError("Error: --template is required. Look for templates in "
                                "src/aurelian/agents/knowledge_agent/templates/"
-                               " or provide a custom template path.")
+                               " or provide a path to a custom LinkML template.")
 
     async def search_ontology(term: str, ontology: str, n: int = 10, verbose: bool = False) -> List[Tuple[str, str]]:
         """
