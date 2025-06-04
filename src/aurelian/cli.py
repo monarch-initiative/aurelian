@@ -1008,6 +1008,9 @@ def knowledge_agent(ui, model, text, template, **kwargs):
     into a knowledge graph or database.
 
     Run with a text input and template to extract knowledge.
+
+    Example usage:
+     poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"
     """
     from pydantic_ai import Agent
     from oaklib import get_adapter
