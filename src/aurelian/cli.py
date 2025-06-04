@@ -1017,7 +1017,7 @@ def knowledge_agent(ui, model, text, template, **kwargs):
                                "src/aurelian/agents/knowledge_agent/templates/"
                                " or provide a path to a custom LinkML template.")
 
-    async def search_ontology(term: str, ontology: str, n: int = 10, verbose: bool = False) -> List[Tuple[str, str]]:
+    async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbose: bool = False) -> List[Tuple[str, str]]:
         """
         Search an OBO ontology for a term.
 
@@ -1095,7 +1095,7 @@ def knowledge_agent(ui, model, text, template, **kwargs):
         2. Do not respond conversationally, but rather output the structured knowledge without
         any additional commentary.
         """,
-        tools=[search_ontology]
+        tools=[search_ontology_with_oak]
     )
 
     # Process the template
