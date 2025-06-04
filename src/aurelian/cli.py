@@ -1017,6 +1017,7 @@ def knowledge_agent(ui, model, text, template, output, **kwargs):
 
     TODO:
     - fix output so it's just the YAML and not an ugly object
+    - add a flag or a new agent to process a pdf instead of text/string
     - add an output_type option to specify the output format (e.g., JSON, YAML)
     - (possibly) add a validation step to check response against schema (LinkML agent has a tool for IIUC)
     """
@@ -1035,7 +1036,7 @@ def knowledge_agent(ui, model, text, template, output, **kwargs):
 
     # Get dependencies
     deps = get_config()
-    
+
     # Configure model if provided
     agent_options = {}
     if model:
