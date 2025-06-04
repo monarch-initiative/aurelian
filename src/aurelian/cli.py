@@ -997,21 +997,25 @@ def paperqa(ui, query, **kwargs):
 @share_option
 @server_port_option
 @ui_option
-@click.option("--template",
-              default="src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml",
-              type=click.Path(path_type=Path))
-@click.argument("text", required=False)
+@click.option("--template", type=click.Path(path_type=Path))
+@click.argument("text", required=True)
 def knowledge_agent(ui, model, text, template, **kwargs):
     """Start the Knowledge Agent for scientific knowledge extraction.
 
     The Knowledge Agent extracts structured knowledge from scientific text,
     aligning it to LinkML schemas. It helps curate scientific knowledge in
-    a standardized format for better integration and analysis.
+    a standardized format for downstream applications such as integration
+    into a knowledge graph or database.
 
-    Run with a text input and template for direct mode or with --ui for interactive mode.
+    Run with a text input and template to extract knowledge.
     """
     from pydantic_ai import Agent
     from oaklib import get_adapter
+
+    if not template:
+        raise click.UsageError("Error: --template is required. Look for templates in "
+                               "src/aurelian/agents/knowledge_agent/templates/"
+                               " or provide a custom template path.")
 
     async def search_ontology(term: str, ontology: str, n: int = 10, verbose: bool = False) -> List[Tuple[str, str]]:
         """
@@ -1046,9 +1050,6 @@ def knowledge_agent(ui, model, text, template, **kwargs):
     if ui:
         click.echo("UI mode not yet implemented for knowledge agent. "
                    "Please use direct query mode.")
-        return
-    if not text:
-        click.echo("Error: Text is required. Please provide text to analyze.")
         return
 
     model_name = model if model else 'openai:gpt-4o'
