@@ -1020,8 +1020,8 @@ def knowledge_agent(ui, model, text, template, output, **kwargs):
     - add an output_type option to specify the output format (e.g., JSON, YAML)
     - (possibly) add a validation step to check response against schema (LinkML agent has a tool for IIUC)
     """
-    from pydantic_ai import Agent
-    from aurelian.agents.knowledge_agent.knowledge_agent_tools import search_ontology_with_oak
+    from aurelian.agents.knowledge_agent.knowledge_agent_agent import run_sync
+    from aurelian.agents.knowledge_agent.knowledge_agent_config import get_config
 
     if not template:
         raise click.UsageError("Error: --template is required. Look for templates in "
@@ -1033,51 +1033,13 @@ def knowledge_agent(ui, model, text, template, output, **kwargs):
                    "Please use direct query mode.")
         return
 
-    model_name = model if model else 'openai:gpt-4o'
-
-    # Create the agent
-    data_curator_agent = Agent(
-        model_name,
-        system_prompt="""
-        You are an expert curator of scientific knowledge. Your purpose is to take 
-        unstructured scientific text and output structured scientific knowledge that is 
-        aligned to a schema that describes the knowledge the user wants to extract.  
-
-        You will be given some scientific text and a schema in LinkML format, and you 
-        will output the knowledge contained in the scientific text such that it aligns
-        with the LinkML schema. 
-
-        You can output as much or as little data as you think is sensible, as long as it is
-        supported by the scientific text. 
-
-        The LinkML schema describes the knowledge that the user wants to extract. Pay particular
-        attention to entity types and relationships defined in the schema. These describe
-        the types of things the user is interested in, and relationships between them.
-
-        The schema may include some advice about what annotators to use when using the 
-        search_ontology tool to ground the terms to the schema. For example, the following items
-        in the schema mean that you should use the Mondo Disease Ontology to ground disease 
-        terms:
-
-        id_prefixes:
-          - MONDO
-        annotations:
-          annotators: sqlite:obo:mondo
-
-        and the following means that you should use the Human Phenotype Ontology: 
-
-        id_prefixes:
-        - HP
-        annotations:
-          annotators: sqlite:obo:hp
-
-        Some other guidelines:
-        1. Use the schema to guide your extraction of knowledge from the scientific text.
-        2. Do not respond conversationally, but rather output the structured knowledge without
-        any additional commentary.
-        """,
-        tools=[search_ontology_with_oak]
-    )
+    # Get dependencies
+    deps = get_config()
+    
+    # Configure model if provided
+    agent_options = {}
+    if model:
+        agent_options["model"] = model
 
     # Process the template
     template_path = template.resolve()
@@ -1092,8 +1054,10 @@ def knowledge_agent(ui, model, text, template, output, **kwargs):
     template_text = template_path.read_text()
 
     # Run the agent
-    response = data_curator_agent.run_sync(
-        user_prompt=f"Align this {text} to the schema at {template_text}",
+    response = run_sync(
+        prompt=f"Align this {text} to the schema at {template_text}",
+        deps=deps,
+        **agent_options
     )
 
     # Format the response for output
