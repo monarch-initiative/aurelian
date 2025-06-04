@@ -1016,6 +1016,7 @@ def knowledge_agent(ui, model, text, template, output, **kwargs):
      poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"
 
     TODO:
+    - fix output so it's just the YAML and not an ugly object
     - add an output_type option to specify the output format (e.g., JSON, YAML)
     - (possibly) add a validation step to check response against schema (LinkML agent has a tool for IIUC)
     """
