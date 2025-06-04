@@ -998,8 +998,10 @@ def paperqa(ui, query, **kwargs):
 @server_port_option
 @ui_option
 @click.option("--template", type=click.Path(path_type=Path))
+@click.option("--output", "-o", type=click.Path(path_type=Path),
+              help="Path to output file. If not specified, output is printed to stdout.")
 @click.argument("text", required=True)
-def knowledge_agent(ui, model, text, template, **kwargs):
+def knowledge_agent(ui, model, text, template, output, **kwargs):
     """Start the Knowledge Agent for scientific knowledge extraction.
 
     The Knowledge Agent extracts structured knowledge from scientific text,
@@ -1007,10 +1009,15 @@ def knowledge_agent(ui, model, text, template, **kwargs):
     a standardized format for downstream applications such as integration
     into a knowledge graph or database.
 
-    Run with a text input and template to extract knowledge.
+    Run with a text input and template to extract knowledge. Results can be
+    printed to stdout (default) or written to a file with the --output option.
 
     Example usage:
      poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"
+
+    TODO:
+    - add an output_type option to specify the output format (e.g., JSON, YAML)
+    - (possibly) add a validation step to check response against schema (LinkML agent has a tool for IIUC)
     """
     from pydantic_ai import Agent
     from aurelian.agents.knowledge_agent.knowledge_agent_tools import search_ontology_with_oak
@@ -1087,7 +1094,22 @@ def knowledge_agent(ui, model, text, template, **kwargs):
     response = data_curator_agent.run_sync(
         user_prompt=f"Align this {text} to the schema at {template_text}",
     )
-    print(f"Extracted Response: {response}")
+
+    # Format the response for output
+    result = str(response)
+
+    # Output to file or stdout based on user preference
+    if output:
+        output_path = Path(output)
+        # Create parent directories if they don't exist
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write to the output file
+        with open(output_path, "w") as f:
+            f.write(result)
+        print(f"Output written to: {output_path}")
+    else:
+        print(f"Extracted Response: {result}")
 
 
 # Import and register PaperQA CLI commands
