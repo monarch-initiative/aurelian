@@ -1013,42 +1013,12 @@ def knowledge_agent(ui, model, text, template, **kwargs):
      poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"
     """
     from pydantic_ai import Agent
-    from oaklib import get_adapter
+    from aurelian.agents.knowledge_agent.knowledge_agent_tools import search_ontology_with_oak
 
     if not template:
         raise click.UsageError("Error: --template is required. Look for templates in "
                                "src/aurelian/agents/knowledge_agent/templates/"
                                " or provide a path to a custom LinkML template.")
-
-    async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbose: bool = False) -> List[Tuple[str, str]]:
-        """
-        Search an OBO ontology for a term.
-
-        Note that search should take into account synonyms, but synonyms may be incomplete,
-        so if you cannot find a concept of interest, try searching using related or synonymous
-        terms.
-
-        If you are searching for a composite term, try searching on the sub-terms to get a sense
-        of the terminology used in the ontology.
-
-        Args:
-            term: The term to search for.
-            ontology: The ontology ID to search
-            n: The number of results to return.
-            verbose: Whether to print debug information.
-
-        Returns:
-            A list of tuples, each containing an ontology ID and a label.
-        """
-        adapter = get_adapter("ols:" + ontology)
-        results = adapter.basic_search(term)
-        if n:
-            results = list(results)[:n]
-        labels = list(adapter.labels(results))
-        if verbose:
-            print(f"## TOOL USE: Searched for '{term}' in '{ontology}' ontology")
-            print(f"## RESULTS: {labels}")
-        return labels
 
     if ui:
         click.echo("UI mode not yet implemented for knowledge agent. "
