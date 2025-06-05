@@ -1000,8 +1000,10 @@ def paperqa(ui, query, **kwargs):
 @click.option("--template", type=click.Path(path_type=Path))
 @click.option("--output", "-o", type=click.Path(path_type=Path),
               help="Path to output file. If not specified, output is printed to stdout.")
-@click.argument("text", required=True)
-def knowledge_agent(ui, model, text, template, output, **kwargs):
+@click.option("--pdf", "-p", multiple=True, type=click.Path(exists=True, dir_okay=False, path_type=Path),
+              help="Path to a PDF file to extract knowledge from. Can be specified multiple times.")
+@click.argument("text", required=False)
+def knowledge_agent(ui, model, text, template, output, pdf, **kwargs):
     """Start the Knowledge Agent for scientific knowledge extraction.
 
     The Knowledge Agent extracts structured knowledge from scientific text,
@@ -1009,15 +1011,18 @@ def knowledge_agent(ui, model, text, template, output, **kwargs):
     a standardized format for downstream applications such as integration
     into a knowledge graph or database.
 
-    Run with a text input and template to extract knowledge. Results can be
+    Run with a text input or PDF file(s) and a template to extract knowledge. Results can be
     printed to stdout (default) or written to a file with the --output option.
 
     Example usage:
+     # Extract from text:
      poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"
+     
+     # Extract from a PDF file:
+     poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml --pdf tests/data/pdfs/alz_blood_test.pdf
 
     TODO:
     - fix output so it's just the YAML and not an ugly object
-    - add a flag or a new agent to process a pdf instead of text/string
     - add an output_type option to specify the output format (e.g., JSON, YAML)
     - (possibly) add a validation step to check response against schema (LinkML agent has a tool for IIUC)
     """
@@ -1054,9 +1059,33 @@ def knowledge_agent(ui, model, text, template, output, **kwargs):
             raise FileNotFoundError(f"Template file {template_path} does not exist.")
     template_text = template_path.read_text()
 
+    # Get the input text - either from direct input or from PDFs
+    input_text = ""
+    if pdf and text:
+        raise click.UsageError("Error: Cannot provide both --pdf and text input. "
+                               "Please provide either PDF files or direct text input, not both.")
+    elif pdf:
+        # Process PDF files
+        from aurelian.agents.knowledge_agent.knowledge_agent_tools import process_pdf_files
+        try:
+            pdf_text = process_pdf_files(pdf)
+            if pdf_text:
+                input_text = pdf_text
+                print(f"Processed {len(pdf)} PDF file(s)")
+            else:
+                raise click.UsageError("Failed to extract text from PDF files")
+        except ImportError as e:
+            raise click.UsageError(str(e))
+    elif text:
+        # Use direct text input
+        input_text = text
+    else:
+        raise click.UsageError("Either text or at least one PDF file (--pdf) must be provided")
+
     # Run the agent
     response = run_sync(
-        prompt=f"Align this {text} to the schema at {template_text}",
+        prompt=f"Align the text below to this schema {template_text}"
+               f"\n\nHere is the text:\n{input_text}",
         deps=deps,
         **agent_options
     )
