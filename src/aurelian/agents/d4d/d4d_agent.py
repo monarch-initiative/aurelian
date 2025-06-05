@@ -20,6 +20,9 @@ When provided with a URL to a webpage or PDF describing a dataset, your task is 
 content, extract all the relevant metadata, and output a YAML document that exactly 
 conforms to the above schema. The output must be valid YAML with all required fields 
 filled in, following the schema exactly.
+
+If you get more than one URL, process each one separately and return the metadata for 
+each dataset in a single YAML document.
 """,
     defer_model_check=True,
 )
@@ -29,10 +32,10 @@ filled in, following the schema exactly.
 async def add_schema(ctx: RunContext[D4DConfig]) -> str:
     """
     Add the full schema to the system prompt.
-    
+
     Args:
         ctx: The run context
-        
+
     Returns:
         The schema to be inserted into the system prompt
     """
@@ -44,17 +47,17 @@ async def add_schema(ctx: RunContext[D4DConfig]) -> str:
 async def extract_metadata(ctx: RunContext[D4DConfig], url: str) -> str:
     """
     Extract metadata from a dataset description document or webpage.
-    
+
     Args:
         ctx: The run context
         url: The URL of the dataset description (webpage or PDF)
-        
+
     Returns:
         YAML formatted metadata following the datasheets for datasets schema
     """
     # Retrieve the content
     content = await process_website_or_pdf(ctx, url)
-    
+
     # Prepare a prompt to extract metadata
     prompt = f"""
 The following is the content of a document describing a dataset:
@@ -68,6 +71,6 @@ The dataset URL is: {url}
 
 Generate only the YAML document.
 """
-    
+
     # The prompt will be used as the user message
     return prompt
