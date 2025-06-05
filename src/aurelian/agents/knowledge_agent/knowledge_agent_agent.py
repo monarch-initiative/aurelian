@@ -75,4 +75,4 @@ def run_sync(prompt: str, deps: KnowledgeAgentDependencies = None, **kwargs) -> 
         Any: The result from running the agent
     """
     agent = knowledge_agent(model=kwargs.get("model", "openai:gpt-4o"), deps=deps)
-    return agent.run_sync(prompt)
+    return agent.run_sync(user_prompt=prompt)
