@@ -1015,11 +1015,11 @@ def knowledge_agent(ui, model, text, template, output, pdf, **kwargs):
     printed to stdout (default) or written to a file with the --output option.
 
     Example usage:
-     # Extract from text:
+     # From text:
      poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"
-     
-     # Extract from a PDF file:
-     poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml --pdf tests/data/pdfs/alz_blood_test.pdf
+
+     # From PDF:
+     poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/gene_to_molecular_activity.yaml --pdf tests/data/pdfs/alz_paper.pdf
 
     TODO:
     - fix output so it's just the YAML and not an ugly object

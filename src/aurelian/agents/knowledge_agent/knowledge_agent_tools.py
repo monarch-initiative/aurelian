@@ -79,7 +79,7 @@ def process_pdf_files(pdf_paths: List[str], max_pages: Optional[int] = None,
     try:
         import PyPDF2
     except ImportError:
-        raise ImportError("PyPDF2 is required for PDF extraction. Install it with `pip install PyPDF2`")
+        raise ImportError("PyPDF2 is required for PDF extraction. Install it with `poetry install -E pdf`")
     
     all_text = ""
     total_pages_processed = 0
