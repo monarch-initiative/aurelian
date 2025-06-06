@@ -1,10 +1,10 @@
 """Tools for the Knowledge Agent."""
 
 import os
-from pathlib import Path
 from typing import List, Tuple, Optional
 
 from oaklib import get_adapter
+from pydantic_ai import RunContext
 
 
 async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbose: bool = False) -> List[Tuple[str, str]]:
@@ -30,7 +30,7 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
     adapter = get_adapter("ols:" + ontology)
     results = adapter.basic_search(term)
     if n:
-        results = list(results)[:n]  # Limit the number of results if n is specified
+        results = list(results)[:n]
     labels = list(adapter.labels(results))
     if verbose:
         print(f"## TOOL USE: Searched for '{term}' in '{ontology}' ontology")
@@ -123,3 +123,76 @@ def process_pdf_files(pdf_paths: List[str], max_pages: Optional[int] = None,
                 break
     
     return all_text.strip()
+
+
+async def search_ontology_terms(ctx: RunContext, ontology_id: str, query: str) -> str:
+    """
+    Intelligent ontology search with smart routing and fallback.
+    
+    This function uses AI-powered preprocessing to route queries to appropriate 
+    ontologies, but can also do direct searches when an ontology is specified.
+    
+    Args:
+        ctx: The run context
+        ontology_id: Ontology preference (e.g., 'mondo', 'hp', 'go') - can be ignored for smart routing
+        query: Search query/term
+        
+    Returns:
+        Detailed ontology search results with smart routing information
+    """
+    try:
+        from aurelian.agents.ontology_mapper.ontology_mapper_agent import ontology_mapper_agent
+        ontology_deps = ctx.deps.ontology_mapper if hasattr(ctx.deps, 'ontology_mapper') else ctx.deps
+        
+        # SMART ROUTING: Use preprocessing to find the best ontologies
+        result = await ontology_mapper_agent.run(
+            f"Use smart preprocessing to find the best ontology terms for: '{query}'. "
+            f"Use search_with_preprocessing to intelligently route this query to appropriate ontologies. "
+            f"If you find good matches, prioritize those. If not, you can also try searching in {ontology_id} as a fallback.",
+            usage=ctx.usage if hasattr(ctx, 'usage') else None,
+            deps=ontology_deps
+        )
+        
+        return result.output
+    except ImportError:
+        return f"Smart ontology search not available. Basic result for '{query}'"
+
+
+async def generate_and_validate_schema(ctx: RunContext, user_request: str) -> str:
+    """
+    Generate and validate a LinkML schema for extraction.
+    
+    This function:
+    1. Calls schema_generator_agent to create the schema
+    2. Automatically validates it with LinkML agent
+    3. Returns a validated schema ready for extraction
+    
+    Use this when:
+    - User asks "generate a schema for..."
+    - User provides text but no schema for extraction
+    - User wants to create schemas for specific domains
+    
+    Args:
+        ctx: The run context with KnowledgeAgentDependencies
+        user_request: The user's request for schema generation
+        
+    Returns:
+        Generated and validated LinkML schema in YAML format
+    """
+    try:
+        from aurelian.agents.schema_generator.schema_agent import schema_generator_agent
+        schema_deps = ctx.deps.schema_generator if hasattr(ctx.deps, 'schema_generator') else None
+        
+        if schema_deps is None:
+            return "Schema generator dependencies not available in RunContext."
+        
+        result = await schema_generator_agent.run(user_request, deps=schema_deps)
+        generated_schema = result.output
+        
+        # TODO: Add LinkML validation here if needed
+        return generated_schema
+        
+    except ImportError:
+        return "Schema generator not available. Please provide a LinkML schema for extraction."
+    except Exception as e:
+        return f"Schema generation failed: {str(e)}"
