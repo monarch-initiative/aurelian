@@ -10,7 +10,7 @@ import gradio as gr
 import yaml
 
 from .schema_agent import run_with_validation
-from .schema_config import get_config
+from .schema_generator_config import get_config
 
 
 async def generate_schema_async(description: str, model: str) -> Tuple[str, str]:

@@ -4,7 +4,7 @@ Schema Generator Agent - Creates LinkML schemas via prompt-based generation.
 import logging
 from pydantic_ai import Agent
 
-from .schema_config import SchemaGeneratorDependencies, get_linkml_deps
+from .schema_generator_config import SchemaGeneratorDependencies, get_linkml_deps
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ async def run_with_validation(user_request: str, deps: SchemaGeneratorDependenci
     """
     try:
         if deps is None:
-            from .schema_config import get_config
+            from .schema_generator_config import get_config
             deps = get_config()
             
         result = await schema_generator_agent.run(user_request, deps=deps)

@@ -10,7 +10,7 @@ import click
 import yaml
 
 from .schema_agent import run_with_validation
-from .schema_config import get_config
+from .schema_generator_config import get_config
 
 
 @click.group()
