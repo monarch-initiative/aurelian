@@ -9,7 +9,7 @@ from typing import Optional
 import click
 import yaml
 
-from .schema_agent import run_with_validation
+from .schema_generator_agent import run_with_validation
 from .schema_generator_config import get_config
 
 

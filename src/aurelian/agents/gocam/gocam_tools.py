@@ -11,8 +11,6 @@ from linkml_store.utils.format_utils import load_objects
 from pydantic_ai import RunContext, ModelRetry
 from pydantic import ValidationError
 
-from gocam.datamodel.gocam import Model as GocamModel
-
 from aurelian.agents.gocam.gocam_config import GOCAMDependencies
 from aurelian.agents.uniprot.uniprot_tools import normalize_uniprot_id
 from aurelian.utils.data_utils import flatten
@@ -268,6 +266,7 @@ async def validate_gocam_model(
         
         # Validate the model
         try:
+            from gocam.datamodel.gocam import Model as GocamModel
             gocam_model = GocamModel(**parsed_data)
             return {
                 "valid": True,

@@ -16,7 +16,7 @@ from mcp.types import (
     EmbeddedResource,
 )
 
-from .schema_agent import run_with_validation
+from .schema_generator_agent import run_with_validation
 from .schema_generator_config import get_config
 
 logger = logging.getLogger(__name__)

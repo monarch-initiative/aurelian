@@ -1,6 +1,5 @@
 import tempfile
 import requests
-from pdfminer.high_level import extract_text
 
 
 def extract_text_from_pdf(pdf_url: str) -> str:
@@ -12,6 +11,7 @@ def extract_text_from_pdf(pdf_url: str) -> str:
         return "Error: Unable to retrieve PDF."
 
     try:
+        from pdfminer.high_level import extract_text
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=True) as temp_pdf:
             temp_pdf.write(response.content)
             temp_pdf.flush()  # Ensure all data is written before reading

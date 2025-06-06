@@ -6,6 +6,8 @@ from typing import Optional, List
 from aurelian.dependencies.workdir import HasWorkdir, WorkDir
 from aurelian.agents.ontology_mapper.ontology_mapper_config import OntologyMapperDependencies
 
+from aurelian.agents.schema_generator.schema_generator_config import SchemaGeneratorDependencies
+
 
 @dataclass
 class KnowledgeAgentDependencies(HasWorkdir):
@@ -17,7 +19,7 @@ class KnowledgeAgentDependencies(HasWorkdir):
     dependencies to avoid creating new connections each time.
     """
     ontology_mapper: OntologyMapperDependencies = None
-    schema_generator: "SchemaGeneratorDependencies" = None  # Forward reference
+    schema_generator: "SchemaGeneratorDependencies" = None
     
     def __post_init__(self):
         """Initialize composed dependencies."""
@@ -28,7 +30,7 @@ class KnowledgeAgentDependencies(HasWorkdir):
             self.ontology_mapper = OntologyMapperDependencies(workdir=self.workdir)
             
         if self.schema_generator is None:
-            from aurelian.agents.schema_generator.schema_config import SchemaGeneratorDependencies
+            from aurelian.agents.schema_generator.schema_generator_config import SchemaGeneratorDependencies
             self.schema_generator = SchemaGeneratorDependencies(workdir=self.workdir)
 
 
