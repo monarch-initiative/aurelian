@@ -1002,8 +1002,170 @@ def paperqa(ui, query, **kwargs):
               help="Path to output file. If not specified, output is printed to stdout.")
 @click.option("--pdf", "-p", multiple=True, type=click.Path(exists=True, dir_okay=False, path_type=Path),
               help="Path to a PDF file to extract knowledge from. Can be specified multiple times.")
+@click.argument("query", nargs=-1, required=False)
+def knowledge_agent(ui, query, template, output, pdf, **kwargs):
+    """Start the Knowledge Agent for scientific knowledge extraction.
+
+    The Knowledge Agent extracts structured knowledge from scientific text using 
+    LinkML schemas. It can automatically generate schemas or use provided templates.
+
+    Examples:
+      - `aurelian knowledge-agent "Extract genes and diseases from this text: ..."`
+      - `aurelian knowledge-agent --template my_schema.yaml "Extract from text"`
+      - `aurelian knowledge-agent --pdf paper.pdf "Extract entities"`
+
+    The agent supports both schema generation and schema-based extraction.
+    """
+    if template and query:
+        # Schema-based extraction
+        from aurelian.agents.knowledge_agent.knowledge_agent_agent import run_sync
+        schema_content = template.read_text() if template else None
+        text_content = " ".join(query)
+        
+        if pdf:
+            # Extract text from PDFs
+            from aurelian.agents.knowledge_agent.knowledge_agent_tools import process_pdf_files
+            pdf_text = process_pdf_files([str(p) for p in pdf])
+            text_content = f"{text_content}\n\n{pdf_text}" if text_content else pdf_text
+        
+        prompt = f"""
+        Schema: {schema_content}
+        
+        Text: {text_content}
+        
+        Extract entities according to the schema.
+        """
+        
+        result = run_sync(prompt)
+        if output:
+            output.write_text(str(result.output))
+            click.echo(f"Results saved to {output}")
+        else:
+            click.echo(result.output)
+    else:
+        # Regular agent mode (with schema generation if needed)
+        run_agent("knowledge_agent", "aurelian.agents.knowledge_agent", query=query, ui=ui, **kwargs)
+
+
+@main.command()
+@model_option
+@workdir_option
+@click.option("--share/--no-share", default=False, help="Share the agent GradIO UI via URL.")
+@click.option("--server-port", "-p", default=7860, help="The port to run the UI server on.")
+@click.option("--ui/--no-ui", default=False, help="Start the agent in UI mode instead of direct generation mode.")
+@click.option("--output", "-o", type=click.Path(path_type=Path),
+              help="Path to output YAML file for generated schema.")
+@click.option("--domain", type=click.Choice(["biomedical", "chemistry", "business", "academic", "legal", "general"]),
+              default="general", help="Domain context for schema generation.")
+@click.option("--complexity", type=click.Choice(["simple", "moderate", "complex"]),
+              default="moderate", help="Schema complexity level.")
+@click.argument("description", nargs=-1, required=False)
+def schema_generator(description, output, domain, complexity, ui, **kwargs):
+    """Generate and validate LinkML schemas for entity extraction.
+
+    Creates sophisticated LinkML schemas from natural language descriptions
+    with automatic validation via LinkML agent.
+
+    Examples:
+      - `aurelian schema-generator "genes and diseases from biomedical text"`
+      - `aurelian schema-generator "chemical reactions with yields" --domain chemistry -o chemistry.yaml`
+      - `aurelian schema-generator --ui` (launch interactive UI)
+
+    The generated schemas include proper ontology grounding and validation constraints.
+    """
+    
+    if ui:
+        # UI mode - launch Gradio interface
+        from aurelian.agents.schema_generator.schema_gradio import launch_gradio
+        
+        # Launch Gradio interface
+        launch_gradio(
+            share=kwargs.get('share', False),
+            server_port=kwargs.get('server_port', 7860)
+        )
+        return
+    
+    # Direct generation mode
+    if not description:
+        click.echo("Error: Description is required when not using --ui mode")
+        click.echo("Usage: aurelian schema-generator 'your description' or use --ui for interactive mode")
+        return
+    
+    import asyncio
+    from aurelian.agents.schema_generator.schema_agent import run_with_validation
+    from aurelian.agents.schema_generator.schema_config import get_schema_config
+    
+    async def generate():
+        deps = get_schema_config()
+        description_text = " ".join(description)
+        
+        # Add domain and complexity context
+        enhanced_description = f"{description_text} (domain: {domain}, complexity: {complexity})"
+        
+        click.echo(f"Generating schema for: {description_text}")
+        click.echo(f"Domain: {domain}, Complexity: {complexity}")
+        
+        try:
+            schema_yaml = await run_with_validation(enhanced_description, deps)
+            
+            if "validation failed" in schema_yaml.lower() or "error" in schema_yaml.lower():
+                click.echo(f"{schema_yaml}")
+                return
+            
+            click.echo("Schema generated and validated successfully!")
+            
+            if output:
+                output.write_text(schema_yaml)
+                click.echo(f"💾 Schema saved to: {output}")
+            else:
+                click.echo("\n📋 Generated Schema:")
+                click.echo(schema_yaml)
+                
+        except Exception as e:
+            click.echo(f"Error: {e}")
+    
+    asyncio.run(generate())
+
+
+@main.command()
+@model_option
+@workdir_option
+@share_option
+@server_port_option
+@ui_option
+@ontologies_option
+@click.argument("query", nargs=-1, required=False)
+def ontology_mapper(ui, query, ontologies, **kwargs):
+    """Start the Ontology Mapper Agent for precise term mapping.
+
+    Maps terms to standard ontologies with detailed curator information
+    including match types, confidence scores, and grounding quality.
+
+    Examples:
+      - `aurelian ontology-mapper "Map diabetes to MONDO terms"`
+      - `aurelian ontology-mapper "Find HGNC terms for BRCA genes"`
+      - `aurelian ontology-mapper --ontologies mondo,hp "Map heart disease terms"`
+
+    Provides precision mapping with curator notes for human review.
+    """
+    if ontologies:
+        kwargs["ontologies"] = ontologies
+
+    run_agent("ontology_mapper", "aurelian.agents.ontology_mapper", query=query, ui=ui, join_char="\n", **kwargs)
+
+
+# Legacy knowledge_agent implementation (using templates)
+@main.command()
+@model_option
+@workdir_option
+@ui_option
+@click.option("--template", type=click.Path(path_type=Path), required=True)
+@click.option("--output", "-o", type=click.Path(path_type=Path),
+              help="Path to output file. If not specified, output is printed to stdout.")
+@click.option("--pdf", "-p", multiple=True, type=click.Path(exists=True, dir_okay=False, path_type=Path),
+              help="Path to a PDF file to extract knowledge from. Can be specified multiple times.")
 @click.argument("text", required=False)
-def knowledge_agent(ui, model, text, template, output, pdf, **kwargs):
+def knowledge_agent_legacy(ui, model, text, template, output, pdf, **kwargs):
     """Start the Knowledge Agent for scientific knowledge extraction.
 
     The Knowledge Agent extracts structured knowledge from scientific text,
