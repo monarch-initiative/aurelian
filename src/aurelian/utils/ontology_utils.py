@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Collection
 
 import logfire
 import pystow
