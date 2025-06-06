@@ -1,7 +1,7 @@
+from functools import lru_cache
+
 import logfire
 import pystow
-from cachetools.func import lru_cache
-from linkml_store.api import Collection
 from linkml_store.api.stores.duckdb import DuckDBDatabase
 from linkml_store.index import LLMIndexer
 from oaklib import BasicOntologyInterface, get_adapter
@@ -37,7 +37,9 @@ def get_collection_for_adapter(handle: str, name: str) -> Collection:
 
 def search_ontology(adapter: BasicOntologyInterface, query: str, limit=10):
     """
-    Search the ontology for the given query term.
+    Search the ontology for the given query term using basic search only.
+    
+    Embedding search has been disabled for performance reasons.
 
     Example:
         >>> from oaklib import get_adapter
@@ -58,11 +60,19 @@ def search_ontology(adapter: BasicOntologyInterface, query: str, limit=10):
     scheme = adapter.resource.scheme
     name = adapter.resource.slug
     local_name = name.split(":")[-1]
-    handle = f"{scheme}:{name}"
 
-    collection = get_collection_for_adapter(handle, local_name)
     with logfire.span("search_ontology {name} {query}", name=name, query=query):
-        print(f"Searching {scheme}:{name} for {query}")
-        qr = collection.search(query, limit=limit, index_name="llm")
-        objs = [(obj["id"], obj["label"]) for obj in qr.rows]
-    return objs
+        # Use fast basic search only (embedding search disabled)
+        results = list(adapter.basic_search(query))
+        if limit:
+            results = results[:limit]
+        labels = list(adapter.labels(results))
+        if labels:
+            print(f"Top result: {labels[0][0]} - {labels[0][1]}")
+        
+        # Return results or empty list
+        if labels:
+            return labels
+        else:
+            print(f"SEARCH_ONTOLOGY: No results found for '{query}' in {name.upper()}")
+            return []
