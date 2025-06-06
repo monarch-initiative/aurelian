@@ -1,6 +1,8 @@
 """
 Agent for extracting dataset metadata following the datasheets for datasets schema.
 """
+from typing import List
+
 from pydantic_ai import Agent, RunContext
 
 from .d4d_config import D4DConfig
@@ -44,32 +46,42 @@ async def add_schema(ctx: RunContext[D4DConfig]) -> str:
 
 
 @d4d_agent.tool
-async def extract_metadata(ctx: RunContext[D4DConfig], url: str) -> str:
+async def extract_metadata(ctx: RunContext[D4DConfig],
+                           urls: List[str],
+                           verbose: bool = True) -> str:
     """
     Extract metadata from a dataset description document or webpage.
 
     Args:
         ctx: The run context
-        url: The URL of the dataset description (webpage or PDF)
+        urls: The URLs of the dataset description (webpages or PDFs). There may be more than one.
+        If there are multiple URLs, we will process each one separately and concatenate the content,
+        then extract metadata from the combined content.
+        verbose: If True, print message about the URLs being processed.
 
     Returns:
         YAML formatted metadata following the datasheets for datasets schema
     """
     # Retrieve the content
-    content = await process_website_or_pdf(ctx, url)
+    content = ""
+    for url in urls:
+        import warnings
+        if verbose:
+            warnings.warn(f"Processing URL: {url}")
+        content += await process_website_or_pdf(ctx, url)
 
     # Prepare a prompt to extract metadata
     prompt = f"""
-The following is the content of a document describing a dataset:
+The following is the content of one or more documents describing a dataset:
 
 {content}
 
 Using the complete datasheets for datasets schema provided above, extract all the metadata 
 from the document and generate a YAML document that exactly conforms to that schema. 
-Ensure that all required fields are present and the output is valid YAML. 
-The dataset URL is: {url}
+Try to ensure that required fields are present, but only populate items that you are
+sure about. Ensure that output is valid YAML. 
 
-Generate only the YAML document.
+Generate only the YAML document. Do not respond with any additional text or commentary.
 """
 
     # The prompt will be used as the user message
