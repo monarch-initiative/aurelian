@@ -4,17 +4,17 @@ Configuration for schema generator agent.
 from dataclasses import dataclass, field
 from typing import Optional, Dict
 
-from aurelian.dependencies.workdir import WorkDir
+from aurelian.dependencies.workdir import HasWorkdir, WorkDir
 
 
 @dataclass
-class SchemaGeneratorDependencies:
+class SchemaGeneratorDependencies(HasWorkdir):
     """Dependencies for sophisticated schema generation.
     
     Uses dependency injection pattern - LinkML dependencies are injected when needed.
     """
     
-    workdir: Optional[WorkDir] = None
+    workdir: WorkDir = field(default_factory=lambda: WorkDir("/tmp/aurelian"))
     
     include_grounding: bool = field(
         default=True,
@@ -40,21 +40,14 @@ class SchemaGeneratorDependencies:
         },
         metadata={"description": "Default prefixes for schemas"}
     )
-    
-    def __post_init__(self):
-        """Initialize dependencies."""        
-        if self.workdir is None:
-            import os
-            loc = os.getenv("AURELIAN_WORKDIR", "/tmp/aurelian")
-            self.workdir = WorkDir(loc)
 
 
-def get_schema_config() -> SchemaGeneratorDependencies:
+def get_config() -> SchemaGeneratorDependencies:
     """Get default schema generator configuration."""
     return SchemaGeneratorDependencies()
 
 
 def get_linkml_deps():
     """Get LinkML dependencies via dependency injection."""
-    from aurelian.agents.linkml.linkml_config import get_config
-    return get_config()
+    from aurelian.agents.linkml.linkml_config import get_config as get_linkml_config
+    return get_linkml_config()

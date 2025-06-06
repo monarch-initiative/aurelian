@@ -10,7 +10,7 @@ import click
 import yaml
 
 from .schema_agent import run_with_validation
-from .schema_config import get_schema_config
+from .schema_config import get_config
 
 
 @click.group()
@@ -39,7 +39,7 @@ def generate(description: str, output: Optional[str], model: str, validate_only:
         schema generate "houses, streets, and prices from real estate listings"
     """
     async def _generate():
-        deps = get_schema_config()
+        deps = get_config()
         
         click.echo(f"🔧 Generating schema for: {description}")
         click.echo(f"Model: {model}")

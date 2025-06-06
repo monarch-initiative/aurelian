@@ -10,7 +10,7 @@ import gradio as gr
 import yaml
 
 from .schema_agent import run_with_validation
-from .schema_config import get_schema_config
+from .schema_config import get_config
 
 
 async def generate_schema_async(description: str, model: str) -> Tuple[str, str]:
@@ -24,7 +24,7 @@ async def generate_schema_async(description: str, model: str) -> Tuple[str, str]
         return "Please provide a description", ""
     
     try:
-        deps = get_schema_config()
+        deps = get_config()
         
         # Generate and validate schema
         schema_yaml = await run_with_validation(description, deps)

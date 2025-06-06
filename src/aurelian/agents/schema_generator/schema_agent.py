@@ -127,8 +127,8 @@ async def run_with_validation(user_request: str, deps: SchemaGeneratorDependenci
     """
     try:
         if deps is None:
-            from .schema_config import get_schema_config
-            deps = get_schema_config()
+            from .schema_config import get_config
+            deps = get_config()
             
         result = await schema_generator_agent.run(user_request, deps=deps)
         generated_schema = result.output

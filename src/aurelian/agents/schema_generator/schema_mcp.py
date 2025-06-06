@@ -17,7 +17,7 @@ from mcp.types import (
 )
 
 from .schema_agent import run_with_validation
-from .schema_config import get_schema_config
+from .schema_config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -234,7 +234,7 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
             # Add domain and complexity context to description
             enhanced_description = f"{description} (domain: {domain}, complexity: {complexity})"
             
-            deps = get_schema_config()
+            deps = get_config()
             schema_yaml = await run_with_validation(enhanced_description, deps)
             
             if "validation failed" in schema_yaml.lower() or "error" in schema_yaml.lower():
