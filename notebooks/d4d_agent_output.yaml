@@ -1,0 +1,126 @@
+```yaml
+DatasetCollection:
+  id: https://w3id.org/bridge2ai/data-sheets-schema
+  name: AI-READI
+  title: Flagship Dataset of Type 2 Diabetes from the AI-READI Project
+  description: >
+    The AI-READI dataset consists of data collected from individuals with and without Type 2 Diabetes Mellitus (T2DM), harmonized across 3 data collection sites. The dataset is designed for AI/ML studies to better understand salutogenesis in T2DM. It includes survey data, physical measurements, clinical data, imaging data, wearable device data, and more.
+  license: >
+    This work is licensed under a custom license tailored to enable the reuse of the AI-READI dataset (and other clinical datasets) for commercial or research purposes with strong requirements around data usage, security, and secondary sharing.
+  see_also:
+    - https://docs.aireadi.org
+  keywords:
+    - Diabetes mellitus
+    - Machine Learning
+    - Artificial Intelligence
+    - Electrocardiography
+    - Continuous Glucose Monitoring
+    - Retinal imaging
+    - Eye exam
+  version: 2.0.0
+  issued: Nov 8, 2024
+  resources:
+    - id: https://fairhub.io/datasets/2
+      name: AI-READI v2.0.0
+      description: >
+        This dataset contains data from 1067 participants collected between July 19, 2023 and July 31, 2024. It includes multiple modalities and contains no protected health information.
+      bytes: 2010000000
+      allocation_tags: 
+        - privacy
+        - clinical
+      bytes: 
+      citation:
+        description: >
+          When using this dataset, please follow the citation instructions provided at https://docs.aireadi.org/docs/2/citation.
+      download_url: >
+        https://doi.org/10.5281/zenodo.10642459
+      license_and_use_terms: 
+        description: >
+          The data is protected under a custom license tailored to enable its reuse with strong requirements around security and sharing.
+    - id: https://doi.org/10.5281/zenodo.10642459
+      name: AI-READI Custom License
+      description: >
+        This custom license enables dataset reuse for commercial or research purposes with requirements on data usage, security, and sharing.
+      citation:
+        description: >
+          For citation guidance, refer to the AI-READI documentation for version 2.0.0 at https://docs.aireadi.org.
+      download_url: https://doi.org/10.5281/zenodo.10642459
+      license_and_use_terms:
+        description: >
+          Refer to the License file included in the dataset and available online for more detailed information.
+
+```
+
+```yaml
+id: "https://w3id.org/bridge2ai/data-sheets-schema/aireadi-v2-0-0"
+name: AI-READI Dataset v2.0.0
+title: Flagship Dataset of Type 2 Diabetes from the AI-READI Project
+description: >
+  The AI-READI is a dataset consisting of data collected from individuals with and without Type 2 Diabetes Mellitus (T2DM) and harmonized across 3 data collection sites. The dataset is designed with future AI/Machine Learning studies in mind, including data acquisition protocols across multiple domains aimed at AI/ML analyses.
+license: >
+  Custom license specifically tailored to enable the reuse for commercial or research purposes with strong requirements around data usage, security, and secondary sharing.
+see_also:
+  - https://docs.aireadi.org
+  - https://fairhub.io/datasets/2
+  - https://doi.org/10.5281/zenodo.10642459
+  - https://reporter.nih.gov/search/1ADgncihCk6fdMRJdCnBjg/project-details/10471118
+
+DatasetCollection:
+  resources:
+    - id: 1
+      title: AI-READI Dataset v2.0.0
+      description: >
+        This dataset contains data from 1067 participants collected between July 19, 2023, and July 31, 2024. The dataset size is 2.01 TB and contains 165,051 files. It includes multiple modalities such as survey data, clinical measurements, imaging data, and more.
+      bytes: 2000000000000
+      download_url: >
+        https://doi.org/10.60775/fairhub.2
+      license_and_use_terms:
+        description: >
+          The dataset is licensed under terms that restrict usage to T2DM-related research only, with specific terms for AI and ML applications.
+
+creator:
+  principal_investigator:
+    name: AI-READI Consortium
+  affiliation:
+    - name: NIH Bridge2AI Common Fund
+
+funders:
+  grantor:
+    name: NIH Bridge2AI Common Fund
+    ror_id: ROR:02mp31p96
+    wikidata_id: WIKIDATA:Q282186
+  grant:
+    name: NIH grant
+    grant_number: 1OT2OD032644
+
+Collection:
+  acquisition_methods:
+    - description: >
+        Data were collected through a combination of survey data, clinical measurements, imaging, and environmental parameters.
+  collection_mechanisms:
+    - description: >
+        Design of data acquisition protocol across multiple domains to enable AI/ML analyses.
+  collection_timeframes:
+    - description: >
+        Data collected from 4,000 anticipated participants and longitudinal data from 10% of the cohort, balanced for diabetes disease stage.
+
+Preprocessing-Cleaning-Labeling:
+  preprocessing_strategies:
+    - description: >
+        Dataset designed to enable pseudo-time manifold analysis. Data are optimized for AI/ML research applications.
+
+Uses:
+  existing_uses:
+    - description: >
+        Used for exploring type 2 diabetes to understand pathways from disease to health through AI/ML research.
+
+Distribution:
+  distribution_formats:
+    - description: "Data distribution includes multiple directories per datatype, modality, and device."
+
+Maintenance:
+  updates:
+    - description: >
+        Changes and updates are documented in the CHANGELOG. Updates communicated through provided documentation and dataset portals.
+```
+
