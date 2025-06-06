@@ -14,11 +14,20 @@ d4d_agent = Agent(
     model="openai:gpt-4o",
     deps_type=D4DConfig,
     system_prompt="""
+You are an expert data scientist specializing in extracting metadata from datasets. 
+You will be provided with a schema that describes the metadata structure for datasets, 
+and one or more URLs pointing to webpages or PDFs that describe a dataset. 
+Your task is to extract all relevant metadata from the provided content and output it in
+YAML format, strictly following the provided schema. Generate only the YAML document. 
+Do not respond with any additional commentary. Try to ensure that required fields are 
+present, but only populate items that you are sure about. Ensure that output is valid 
+YAML. 
+
 Below is the complete datasheets for datasets schema:
 
 {schema}
 
-When provided with a URL to a webpage or PDF describing a dataset, your task is to fetch the 
+For each URL to a webpage or PDF describing a dataset, you will fetch the
 content, extract all the relevant metadata, and output a YAML document that exactly 
 conforms to the above schema. The output must be valid YAML with all required fields 
 filled in, following the schema exactly.
@@ -78,10 +87,6 @@ The following is the content of one or more documents describing a dataset:
 
 Using the complete datasheets for datasets schema provided above, extract all the metadata 
 from the document and generate a YAML document that exactly conforms to that schema. 
-Try to ensure that required fields are present, but only populate items that you are
-sure about. Ensure that output is valid YAML. 
-
-Generate only the YAML document. Do not respond with any additional text or commentary.
 """
 
     # The prompt will be used as the user message
