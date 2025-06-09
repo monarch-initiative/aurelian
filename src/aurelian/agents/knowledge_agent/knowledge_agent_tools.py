@@ -290,7 +290,7 @@ async def ground_entities_with_template_annotators(ctx: RunContext, entities: Li
         for entity_class, annotator in annotators.items():
             try:
                 print(f"  Searching in {entity_class} ({annotator})")
-                search_results = await search_ontology_with_oak(entity_text, annotator, n=3, verbose=False)
+                search_results = await search_ontology_with_oak(entity_text, annotator, n=13, verbose=False)
 
                 if search_results:
                     # Take the best match
