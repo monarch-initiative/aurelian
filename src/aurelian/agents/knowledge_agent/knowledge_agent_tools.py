@@ -1,15 +1,43 @@
 """Tools for the Knowledge Agent."""
 
 import os
-from typing import List, Tuple, Optional
+import yaml
+from typing import List, Tuple, Optional, Dict, Any
 
 from oaklib import get_adapter
 from pydantic_ai import RunContext
+from pydantic import BaseModel, Field
+
+
+class ExtractedEntity(BaseModel):
+    """A single entity extracted from text."""
+    text: str = Field(description="The entity text as found in the source")
+    entity_type: Optional[str] = Field(None, description="The type of entity if known (e.g., 'gene', 'disease', 'phenotype')")
+    context: Optional[str] = Field(None, description="Surrounding context from the original text")
+
+
+class EntityGroundingMatch(BaseModel):
+    """A grounding match for an entity in a specific ontology."""
+    entity: str = Field(description="The original entity text")
+    entity_type: str = Field(description="The entity class from the template (e.g., 'DiseaseTerm', 'PhenotypeTerm')")
+    ontology_id: str = Field(description="The ontology identifier (e.g., 'MONDO:0018923')")
+    ontology_label: str = Field(description="The ontology term label")
+    annotator: str = Field(description="The annotator used (e.g., 'sqlite:obo:mondo')")
+    confidence: str = Field(description="Confidence level: 'high', 'medium', 'low'")
+
+
+class GroundingResults(BaseModel):
+    """Comprehensive grounding results for all entities."""
+    entities_processed: List[str] = Field(description="List of entity texts that were processed")
+    annotators_used: Dict[str, str] = Field(description="Mapping of entity class to annotator string")
+    successful_matches: List[EntityGroundingMatch] = Field(description="All successful ontology matches")
+    no_matches: List[str] = Field(description="Entities that could not be grounded")
+    summary: str = Field(description="Human-readable summary of the grounding results")
 
 
 async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbose: bool = True) -> List[Tuple[str, str]]:
     """
-    Search an OBO ontology for a term.
+    Search an OBO ontology for a term with case-insensitive fallback strategies.
 
     Note that search should take into account synonyms, but synonyms may be incomplete,
     so if you cannot find a concept of interest, try searching using related or synonymous
@@ -19,6 +47,12 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
 
     If you are searching for a composite term, try searching on the sub-terms to get a sense
     of the terminology used in the ontology.
+
+    Try multiple search strategies to handle case sensitivity issues:
+    1. Original term as provided
+    2. Title case version (e.g., "Cleft palate")
+    3. Lowercase version
+    4. All caps version (for gene symbols)
 
     Args:
         term: The term to search for.
@@ -47,10 +81,53 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
     if n:
         results = list(results)[:n]
     labels = list(adapter.labels(results))
+
+    adapter = get_adapter(ontology)
+
+    search_variations = [
+        term,
+        term.capitalize(),
+        term.title(),
+        term.lower(),
+        term.upper(),
+    ]
+    print(search_variations)
+
+    search_variations = list(dict.fromkeys(search_variations))
+
+    all_results = []
+
+    for search_term in search_variations:
+        try:
+            results = adapter.basic_search(search_term)
+            if results:
+                results_list = list(results)
+                if results_list:
+                    labels = list(adapter.labels(results_list))
+                    if labels:
+                        all_results.extend(labels)
+                        if verbose:
+                            print(f"## FOUND with '{search_term}': {labels[:3]}")  # Show first 3
+                        break
+        except Exception as e:
+            if verbose:
+                print(f"## ERROR searching '{search_term}': {e}")
+            continue
+
+    seen = set()
+    unique_results = []
+    for result in all_results:
+        if result[0] not in seen:
+            seen.add(result[0])
+            unique_results.append(result)
+            if len(unique_results) >= n:
+                break
+
     if verbose:
         print(f"## TOOL USE: Searched for '{term}' in '{ontology}' ontology")
-        print(f"## RESULTS: {labels}")
-    return labels
+        print(f"## FINAL RESULTS: {unique_results}")
+
+    return unique_results
 
 
 def extract_text_from_pdf(pdf_path: str) -> str:
@@ -138,6 +215,138 @@ def process_pdf_files(pdf_paths: List[str], max_pages: Optional[int] = None,
                 break
 
     return all_text.strip()
+
+
+def parse_template_annotators(template_content: str) -> Dict[str, str]:
+    """
+    Parse a LinkML template to extract entity classes and their annotators.
+
+    Args:
+        template_content: YAML content of the LinkML template
+
+    Returns:
+        Dict mapping entity class names to their annotator strings
+    """
+    try:
+        schema = yaml.safe_load(template_content)
+        annotators = {}
+
+        if 'classes' in schema:
+            for class_name, class_def in schema['classes'].items():
+                if 'annotations' in class_def and 'annotators' in class_def['annotations']:
+                    annotator = class_def['annotations']['annotators']
+                    annotators[class_name] = annotator
+                    print(f"Found {class_name} -> {annotator}")
+
+        return annotators
+    except Exception as e:
+        print(f"Error parsing template: {e}")
+        return {}
+
+
+async def ground_entities_with_template_annotators(ctx: RunContext, entities: List[ExtractedEntity], template_content: str) -> GroundingResults:
+    """
+    Ground a list of entities using all annotators from the template.
+
+    This function systematically:
+    1. Parses template to get all annotators (e.g., sqlite:obo:mondo, sqlite:obo:hp)
+    2. For each entity, searches in ALL annotators
+    3. Returns structured GroundingResults showing which entities match in which ontologies
+
+    Args:
+        ctx: The run context
+        entities: List of ExtractedEntity objects from the LLM
+        template_content: YAML content of the LinkML template
+
+    Returns:
+        GroundingResults: Structured grounding results for all entities across all template annotators
+    """
+    # Step 1: Parse template to get all annotators
+    annotators = parse_template_annotators(template_content)
+
+    if not annotators:
+        return GroundingResults(
+            entities_processed=[],
+            annotators_used={},
+            successful_matches=[],
+            no_matches=[],
+            summary="No annotators found in template. Cannot proceed with grounding."
+        )
+
+    entity_texts = [e.text for e in entities]
+    print(f"Template annotators: {annotators}")
+    print(f"Entities to ground: {entity_texts}")
+
+    # Step 2: Initialize results
+    successful_matches = []
+    no_matches = []
+
+    # Step 3: For each entity, search in ALL annotators
+    for entity_obj in entities:
+        entity_text = entity_obj.text
+        print(f"\n--- Grounding '{entity_text}' ---")
+        entity_has_matches = False
+
+        for entity_class, annotator in annotators.items():
+            try:
+                print(f"  Searching in {entity_class} ({annotator})")
+                search_results = await search_ontology_with_oak(entity_text, annotator, n=3, verbose=False)
+
+                if search_results:
+                    # Take the best match
+                    term_id, label = search_results[0]
+
+                    # Determine confidence
+                    confidence = "high" if entity_text.lower() in label.lower() else "medium"
+
+                    match = EntityGroundingMatch(
+                        entity=entity_text,
+                        entity_type=entity_class,
+                        ontology_id=term_id,
+                        ontology_label=label,
+                        annotator=annotator,
+                        confidence=confidence
+                    )
+                    successful_matches.append(match)
+                    entity_has_matches = True
+                    print(f"    ✓ {term_id} - {label}")
+                else:
+                    print(f"    ✗ No match")
+
+            except Exception as e:
+                print(f"    ✗ Error: {e}")
+                continue
+
+        if not entity_has_matches:
+            no_matches.append(entity_text)
+
+    # Step 4: Create summary
+    summary_lines = [
+        f"GROUNDING RESULTS:",
+        f"Entities processed: {len(entity_texts)}",
+        f"Annotators used: {list(annotators.keys())}",
+        ""
+    ]
+
+    if successful_matches:
+        summary_lines.append(f"SUCCESSFUL MATCHES ({len(successful_matches)}):")
+        for match in successful_matches:
+            summary_lines.append(f"- '{match.entity}' -> {match.entity_type}: {match.ontology_id} ({match.ontology_label})")
+
+    if no_matches:
+        summary_lines.append(f"\nNO MATCHES FOUND:")
+        for entity in no_matches:
+            summary_lines.append(f"- '{entity}'")
+
+    summary = "\n".join(summary_lines)
+
+    return GroundingResults(
+        entities_processed=entity_texts,
+        annotators_used=annotators,
+        successful_matches=successful_matches,
+        no_matches=no_matches,
+        summary=summary
+    )
 
 
 async def search_ontology_terms(ctx: RunContext, ontology_id: str, query: str) -> str:
