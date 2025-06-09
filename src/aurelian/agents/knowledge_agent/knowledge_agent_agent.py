@@ -28,7 +28,7 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
     """
     # Configure Logfire for this agent
     logfire.configure()
-    
+
     return Agent(
         model,
         deps_type=KnowledgeAgentDependencies,
@@ -39,9 +39,9 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         aligned to a schema that describes the knowledge the user wants to extract.  
 
         ## WORKFLOW:
-        1. **If no schema is provided**: Use `generate_and_validate_schema` to create an appropriate LinkML schema first
-        2. **Extract entities**: Use the schema to extract structured knowledge from the text
-        3. **Ground entities**: Use `search_ontology_terms` to ground entities to standard ontologies
+        1. **Extract entities**: Use the schema to extract structured knowledge from the text
+        2. **Ground entities**: Use `search_ontology_terms` and 
+        `search_ontology_with_oak` to ground entities to standard ontologies
 
         You will be given some scientific text and either:
         - A LinkML schema (use it directly for extraction)
@@ -55,7 +55,7 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         the types of things the user are interested in, and relationships between them.
 
         The schema may include some advice about what annotators to use when using the 
-        search_ontology tool to ground the terms to the schema. For example, the following items
+        ontology search tools to ground the terms to the schema. For example, the following items
         in the schema mean that you should use the Mondo Disease Ontology to ground disease 
         terms:
 
@@ -70,31 +70,35 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         - HP
         annotations:
           annotators: sqlite:obo:hp
+          
+        the "annotators" items can each be passed directly to search_ontology_with_oak() 
 
         Some other guidelines:
         1. Use the schema to guide your extraction of knowledge from the scientific text.
         2. Ground entities to ontologies using `search_ontology_terms` for precise mapping.
-        3. **FOCUS ON RELATIONSHIPS**: Carefully analyze what is connected in the text:
+        3. It's okay to have entities that are not grounded, as long as you are sure they
+        are actually entities present in the schema.
+        4. **FOCUS ON RELATIONSHIPS**: Carefully analyze what is connected in the text:
            - Look for causal relationships (X causes Y, X leads to Y)
            - Look for functional relationships (X encodes Y, X participates in Y)
            - Look for therapeutic relationships (X treats Y, X inhibits Y)
            - Look for genetic relationships (mutations in X increase risk of Y)
            - Extract BOTH entities in any relationship you identify
-        4. Extract ALL relevant entities from the text - be comprehensive.
-        5. **Track grounding sources**: When grounding entities, always populate the `grounding_source` field:
-           - `"ontology:mondo"` for MONDO disease ontology
-           - `"ontology:hgnc"` for HGNC gene nomenclature
-           - `"ontology:hp"` for Human Phenotype Ontology
-           - `"ontology:go"` for Gene Ontology
-           - `"ontology:chebi"` for chemical entities
+        5. Extract ALL relevant entities from the text - be comprehensive.
+        6. **Track grounding sources**: When grounding entities, always populate the `grounding_source` field:
+           - `"sqlite:obo:mondo"` or "ols:mondo" for MONDO disease ontology
+           - `"sqlite:obo:hgnc"` for HGNC gene nomenclature
+           - `"sqlite:obo:hp"` or "ols:hp" for Human Phenotype Ontology
+           - `"sqlite:obo:go"` or "ols:go" for Gene Ontology
+           - `"sqlite:chebi"` or "ols:chebi" for chemical entities
            - `"web_search"` for entities grounded via web search
-        6. In the "potentially_missing" field, identify important terms that might have been missed:
+        7. In the "potentially_missing" field, identify important terms that might have been missed:
            - Look for gene names, protein names, drug names that weren't extracted
            - Look for disease subtypes, procedures, biological processes
            - Pay special attention to entities mentioned in relationships
            - Note why each might have been missed (e.g., "not in schema", "complex terminology")
-        7. Output structured knowledge in JSON format matching the schema.
-        8. Do not respond conversationally, output structured data only.
+        8. Output structured knowledge in JSON format matching the schema.
+        9. Do not respond conversationally, output structured data only.
         """,
         tools=[
             search_ontology_with_oak,
@@ -117,26 +121,26 @@ def run_sync(prompt: str, deps: KnowledgeAgentDependencies = None, **kwargs) -> 
     """
     with logfire.span("knowledge_agent_run", prompt=prompt[:100] + "..." if len(prompt) > 100 else prompt):
         start_time = time.time()
-        
+
         logfire.info("Starting knowledge extraction",
                     prompt_length=len(prompt),
                     model=kwargs.get("model", "openai:gpt-4o"))
-        
+
         try:
             if deps is None:
                 from aurelian.agents.knowledge_agent.knowledge_agent_config import get_config
                 deps = get_config()
-            
+
             agent = knowledge_agent(model=kwargs.get("model", "openai:gpt-4o"))
             result = agent.run_sync(user_prompt=prompt, deps=deps)
-            
+
             processing_time = time.time() - start_time
             logfire.info("Knowledge extraction completed",
                         processing_time=processing_time,
                         result_type=type(result.output).__name__ if hasattr(result, 'output') else str(type(result)))
-            
+
             return result
-            
+
         except Exception as e:
             processing_time = time.time() - start_time
             logfire.error("Knowledge extraction failed",
