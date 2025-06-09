@@ -38,16 +38,14 @@ class ExtractionResult(BaseModel):
     """Simple extraction result in JSON format."""
     entities: List[SimpleEntity] = Field(default_factory=list)
     relationships: List[SimpleRelationship] = Field(default_factory=list)
-    potentially_missing: List[MissingEntity] = Field(default_factory=list, description="Entities that might have been missed")
     schema_name: Optional[str] = Field(None, description="Schema used for extraction")
     timestamp: datetime = Field(default_factory=datetime.now)
-    
+
     def to_json_dict(self) -> Dict[str, Any]:
         """Convert to simple JSON dictionary."""
         return {
             "entities": [entity.model_dump() for entity in self.entities],
             "relationships": [rel.model_dump() for rel in self.relationships],
-            "potentially_missing": [missing.model_dump() for missing in self.potentially_missing],
             "schema_name": self.schema_name,
             "timestamp": self.timestamp.isoformat()
         }

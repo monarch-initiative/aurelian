@@ -7,13 +7,15 @@ from oaklib import get_adapter
 from pydantic_ai import RunContext
 
 
-async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbose: bool = False) -> List[Tuple[str, str]]:
+async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbose: bool = True) -> List[Tuple[str, str]]:
     """
     Search an OBO ontology for a term.
 
     Note that search should take into account synonyms, but synonyms may be incomplete,
     so if you cannot find a concept of interest, try searching using related or synonymous
-    terms.
+    terms. For example, if you do not find a term for 'eye defect' in the Human Phenotype Ontology,
+    try searching for "abnormality of eye" or "eye abnormality" instead. Also be sure to
+    check for upper and lower case variations of the term.
 
     If you are searching for a composite term, try searching on the sub-terms to get a sense
     of the terminology used in the ontology.
@@ -23,15 +25,25 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
         ontology: The ontology ID to search. You can try prepending "ols:" to an ontology name to
         use the ontology lookup service (OLS), for example "ols:mondo" or "ols:hp". You
         can also try prepending "sqlite:obo:" to an ontology name to use the local sqlite
-        version of ontologies.
+        version of ontologies, for example "sqlite:obo:mondo" or "sqlite:obo:hp".
+           - `"sqlite:obo:mondo"` or "ols:mondo" for disease in the MONDO disease ontology
+           - `"sqlite:obo:hgnc"` for genes in HGNC gene nomenclature
+           - `"sqlite:obo:hp"` or "ols:hp" for Human Phenotype Ontology
+           - `"sqlite:obo:go"` or "ols:go" for Gene Ontology
+           - `"sqlite:chebi"` or "ols:chebi" for chemical entities
         n: The maximum number of results to return.
         verbose: Whether to print debug information.
 
     Returns:
         A list of tuples, each containing an ontology ID and a label.
     """
-    adapter = get_adapter(ontology)
-    results = adapter.basic_search(term)
+    # try / except
+    try:
+        adapter = get_adapter(ontology)
+        results = adapter.basic_search(term)
+    except ValueError as e:
+        print(f"## TOOL WARNING: Unable to search ontology '{ontology}' - {str(e)}")
+        return None
     if n:
         results = list(results)[:n]
     labels = list(adapter.labels(results))

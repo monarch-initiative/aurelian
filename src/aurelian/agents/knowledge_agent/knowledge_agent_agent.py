@@ -31,6 +31,8 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
 
     return Agent(
         model,
+        retries=3,
+        output_retries=3,
         deps_type=KnowledgeAgentDependencies,
         result_type=KnowledgeAgentOutput,
         system_prompt="""
@@ -74,35 +76,84 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         the "annotators" items can each be passed directly to search_ontology_with_oak() 
 
         Some other guidelines:
-        1. Use the schema to guide your extraction of knowledge from the scientific text.
-        2. Ground entities to ontologies using `search_ontology_terms` for precise mapping.
-        3. It's okay to have entities that are not grounded, as long as you are sure they
+        1. Do not respond conversationally, output structured data only.
+        2. Use the schema to guide your extraction of knowledge from the scientific text.
+        3. Ground entities to ontologies using `search_ontology_terms` for precise mapping.
+        4. It's okay to have entities that are not grounded, as long as you are sure they
         are actually entities present in the schema.
-        4. **FOCUS ON RELATIONSHIPS**: Carefully analyze what is connected in the text:
-           - Look for causal relationships (X causes Y, X leads to Y)
-           - Look for functional relationships (X encodes Y, X participates in Y)
-           - Look for therapeutic relationships (X treats Y, X inhibits Y)
-           - Look for genetic relationships (mutations in X increase risk of Y)
-           - Extract BOTH entities in any relationship you identify
-        5. Extract ALL relevant entities from the text - be comprehensive.
-        6. **Track grounding sources**: When grounding entities, always populate the `grounding_source` field:
-           - `"sqlite:obo:mondo"` or "ols:mondo" for MONDO disease ontology
-           - `"sqlite:obo:hgnc"` for HGNC gene nomenclature
-           - `"sqlite:obo:hp"` or "ols:hp" for Human Phenotype Ontology
-           - `"sqlite:obo:go"` or "ols:go" for Gene Ontology
-           - `"sqlite:chebi"` or "ols:chebi" for chemical entities
-           - `"web_search"` for entities grounded via web search
-        7. In the "potentially_missing" field, identify important terms that might have been missed:
-           - Look for gene names, protein names, drug names that weren't extracted
-           - Look for disease subtypes, procedures, biological processes
-           - Pay special attention to entities mentioned in relationships
-           - Note why each might have been missed (e.g., "not in schema", "complex terminology")
-        8. Output structured knowledge in JSON format matching the schema.
-        9. Do not respond conversationally, output structured data only.
+        5. **FOCUS ON RELATIONSHIPS**: Carefully analyze what is connected in the text. 
+        These relationships are particularly important, but you can use 
+        any relationships that are defined in the schema. Here are some common relationships
+        you can use:
+           
+            biolink:has_phenotype
+            Description: Captures observable traits linked to diseases or genetic disorders.
+            Example: "Disease X has_phenotype fever."
+
+            biolink:gene_encodes_gene_product
+            Description: Connects a gene to the protein or RNA product it encodes.
+            Example: "The BRCA1 gene encodes the BRCA1 protein."
+
+            biolink:physically_interacts_with
+            Description: Indicates that two gene products bind or directly interact with each other.
+            Example: "Protein A physically interacts with Protein B."
+
+            biolink:causes
+            Description: Describes a direct causal link between an entity (e.g., variant, exposure) and a disease or phenotype.
+            Example: "Mutation in Gene X causes Disease Y."
+
+            biolink:positively_regulates
+            Description: Indicates that one entity increases the activity or expression of another.
+            Example: "Transcription factor X positively regulates Gene Y."
+
+            biolink:negatively_regulates
+            Description: Indicates that one entity decreases or represses the activity or expression of another.
+            Example: "miRNA Z negatively regulates Target A expression."
+            
+            biolink:associated_with
+            Description: Denotes a non-causal but statistically or biologically meaningful association between two entities.
+            Example: "Gene A is associated with Disease B."
+            
+            biolink:affects
+            Description: Indicates that one entity alters or influences another, without specifying the direction or mechanism.
+            Example: "Drug X affects blood pressure."
+            
+            biolink:treats
+            Description: Connects a treatment (e.g., drug, therapy) to a disease or condition it ameliorates.
+            Example: "Drug D treats Hypertension."
+            
+            biolink:inhibits
+            Description: Specifies that one entity suppresses the function, expression, or activity of another.
+            Example: "Compound X inhibits Enzyme Y."
+            
+            biolink:participates_in
+            Description: Links a molecular entity or process to a broader biological process or pathway.
+            Example: "Protein P participates in the apoptosis pathway."
+            
+            biolink:subclass_of
+            Description: Indicates a hierarchical relationship where one class is a more specific instance of another.
+            Example: "MicroRNA is a subclass_of GeneProduct."
+            
+            biolink:has_variant
+            Description: Connects a gene to a specific sequence variant.
+            Example: "Gene X has_variant X123Y."
+            
+            biolink:has_publication
+            Description: Associates an assertion or relationship with a supporting publication or citation.
+            Example: "This association has_publication PMID:123456."
+            
+            biolink:related_to
+            Description: A generic relationship used when the specific nature of the connection is unknown or broad.
+            Example: "Symptom A is related_to Disease B."
+            
+        6. Extract ALL relevant entities from the text - be comprehensive.
+        7. **Track grounding sources**: When grounding entities, always populate the `grounding_source` field
+        with the source of the grounding. For example, if you ground a disease to MONDO, set:
+              - `grounding_source: "mondo"`
+        8. Output structured knowledge in a format matching the schema.
         """,
         tools=[
             search_ontology_with_oak,
-            search_ontology_terms,  # Full ontology mapper agent delegation
             generate_and_validate_schema  # Schema generator with LinkML validation
         ]
     )
@@ -123,8 +174,8 @@ def run_sync(prompt: str, deps: KnowledgeAgentDependencies = None, **kwargs) -> 
         start_time = time.time()
 
         logfire.info("Starting knowledge extraction",
-                    prompt_length=len(prompt),
-                    model=kwargs.get("model", "openai:gpt-4o"))
+                     prompt_length=len(prompt),
+                     model=kwargs.get("model", "openai:gpt-4o"))
 
         try:
             if deps is None:
@@ -136,16 +187,16 @@ def run_sync(prompt: str, deps: KnowledgeAgentDependencies = None, **kwargs) -> 
 
             processing_time = time.time() - start_time
             logfire.info("Knowledge extraction completed",
-                        processing_time=processing_time,
-                        result_type=type(result.output).__name__ if hasattr(result, 'output') else str(type(result)))
+                         processing_time=processing_time,
+                         result_type=type(result.output).__name__ if hasattr(result, 'output') else str(type(result)))
 
             return result
 
         except Exception as e:
             processing_time = time.time() - start_time
             logfire.error("Knowledge extraction failed",
-                         error=str(e),
-                         processing_time=processing_time)
+                          error=str(e),
+                          processing_time=processing_time)
             raise
 
 
