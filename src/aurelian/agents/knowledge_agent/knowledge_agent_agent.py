@@ -12,7 +12,8 @@ from aurelian.agents.knowledge_agent.knowledge_agent_config import KnowledgeAgen
 from aurelian.agents.knowledge_agent.knowledge_agent_tools import (
     search_ontology_with_oak,
     generate_and_validate_schema,
-    search_ontology_terms
+    search_ontology_terms,
+    ground_entities_with_template_annotators
 )
 
 
@@ -73,9 +74,28 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
           
         the "annotators" items can each be passed directly to search_ontology_with_oak() 
 
+        ## 🔬 ONTOLOGY MAPPING STRATEGY:
+        
+        The schema defines different entity types (classes) and specifies which ontology should be used for grounding each type through the "annotators" field. Pay close attention to these specifications as they indicate the correct ontology for each entity type. When extracting entities from text, identify ALL entity types defined in the schema and ground each entity using a robust two-step approach:
+
+        **STRUCTURED SYSTEMATIC APPROACH**: 
+        1. **Extract entities** from the text naturally as you read it and create ExtractedEntity objects with:
+           - text: the entity string (e.g., "cleft palate", "22q11.2 deletion syndrome")
+           - entity_type: if you can determine it from context (optional)
+           - context: surrounding text (optional)
+        2. **Use `ground_entities_with_template_annotators(entities_list, template_content)`** to systematically ground all entities
+        3. This function returns a GroundingResults object with:
+           - successful_matches: List of EntityGroundingMatch objects showing all ontology matches
+           - no_matches: Entities that couldn't be grounded
+           - annotators_used: Which ontologies were searched
+           - summary: Human-readable summary
+        4. Use the structured GroundingResults to populate your final output with proper ontology mappings
+        
+        This ensures maximum grounding success by combining smart routing with direct ontology search. The schema acts as your guide for both what to extract and where to find standardized identifiers for each extracted entity.
+
         Some other guidelines:
         1. Use the schema to guide your extraction of knowledge from the scientific text.
-        2. Ground entities to ontologies using `search_ontology_terms` for precise mapping.
+        2. Ground entities using the two-step approach above - don't give up after just one attempt.
         3. It's okay to have entities that are not grounded, as long as you are sure they
         are actually entities present in the schema.
         4. **FOCUS ON RELATIONSHIPS**: Carefully analyze what is connected in the text:
@@ -103,7 +123,8 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         tools=[
             search_ontology_with_oak,
             search_ontology_terms,  # Full ontology mapper agent delegation
-            generate_and_validate_schema  # Schema generator with LinkML validation
+            generate_and_validate_schema,  # Schema generator with LinkML validation
+            ground_entities_with_template_annotators  # Systematic grounding with template annotators
         ]
     )
 
