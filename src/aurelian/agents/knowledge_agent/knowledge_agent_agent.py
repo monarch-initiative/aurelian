@@ -175,8 +175,8 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         """,
         tools=[
             search_ontology_with_oak,
-            generate_and_validate_schema,  # Schema generator with LinkML validation
-            search_ontology_terms,  # Full ontology mapper agent delegation
+            # generate_and_validate_schema,  # Schema generator with LinkML validation
+            # search_ontology_terms,  # Full ontology mapper agent delegation
             # ground_entities_with_template_annotators  # Systematic grounding with template annotators
         ]
     )

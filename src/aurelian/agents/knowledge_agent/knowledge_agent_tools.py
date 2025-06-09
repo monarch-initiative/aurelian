@@ -37,22 +37,18 @@ class GroundingResults(BaseModel):
 
 async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbose: bool = True) -> List[Tuple[str, str]]:
     """
-    Search an OBO ontology for a term with case-insensitive fallback strategies.
+    Search an OBO ontology for a term.
 
     Note that search should take into account synonyms, but synonyms may be incomplete,
     so if you cannot find a concept of interest, try searching using related or synonymous
     terms. For example, if you do not find a term for 'eye defect' in the Human Phenotype Ontology,
-    try searching for "abnormality of eye" or "eye abnormality" instead. Also be sure to
-    check for upper and lower case variations of the term.
+    try searching for "abnormality of eye" and also try searching for "eye" and then
+    looking through the results to find the more specific term you are interested in.
+
+    Also remember to check for upper and lower case variations of the term.
 
     If you are searching for a composite term, try searching on the sub-terms to get a sense
     of the terminology used in the ontology.
-
-    Try multiple search strategies to handle case sensitivity issues:
-    1. Original term as provided
-    2. Title case version (e.g., "Cleft palate")
-    3. Lowercase version
-    4. All caps version (for gene symbols)
 
     Args:
         term: The term to search for.
@@ -75,59 +71,17 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
     try:
         adapter = get_adapter(ontology)
         results = adapter.basic_search(term)
+        results = list(adapter.labels(results))
     except ValueError as e:
         print(f"## TOOL WARNING: Unable to search ontology '{ontology}' - {str(e)}")
         return None
     if n:
         results = list(results)[:n]
-    labels = list(adapter.labels(results))
-
-    adapter = get_adapter(ontology)
-
-    search_variations = [
-        term,
-        term.capitalize(),
-        term.title(),
-        term.lower(),
-        term.upper(),
-    ]
-    print(search_variations)
-
-    search_variations = list(dict.fromkeys(search_variations))
-
-    all_results = []
-
-    for search_term in search_variations:
-        try:
-            results = adapter.basic_search(search_term)
-            if results:
-                results_list = list(results)
-                if results_list:
-                    labels = list(adapter.labels(results_list))
-                    if labels:
-                        all_results.extend(labels)
-                        if verbose:
-                            print(f"## FOUND with '{search_term}': {labels[:3]}")  # Show first 3
-                        break
-        except Exception as e:
-            if verbose:
-                print(f"## ERROR searching '{search_term}': {e}")
-            continue
-
-    seen = set()
-    unique_results = []
-    for result in all_results:
-        if result[0] not in seen:
-            seen.add(result[0])
-            unique_results.append(result)
-            if len(unique_results) >= n:
-                break
 
     if verbose:
         print(f"## TOOL USE: Searched for '{term}' in '{ontology}' ontology")
-        print(f"## FINAL RESULTS: {unique_results}")
-
-    return unique_results
+        print(f"## RESULTS: {results}")
+    return results
 
 
 def extract_text_from_pdf(pdf_path: str) -> str:
