@@ -23,11 +23,12 @@ classes:
     is_a: NamedEntity
     attributes:
       terms:
-        range: OntologyTerm
+        range: DiseaseTerm
         multivalued: true
         description: >-
           A semicolon-separated list of any MONDO Disease Ontology terms.
-  OntologyTerm:
+
+  DiseaseTerm:
     is_a: NamedEntity
     id_prefixes:
       - MONDO
@@ -38,3 +39,25 @@ classes:
         Examples include: neurothekoma, retinal vasculitis,
         chicken monocytic leukemia, neoplasm of spinal cord,
         moyamoya disease 3
+
+  PhenotypeTerm:
+    is_a: NamedEntity
+    id_prefixes:
+      - HP
+    annotations:
+      annotators: sqlite:obo:hp
+      prompt: >-
+        The name of a Human Phenotype Ontology (HPO) term.
+        Examples include: seizures, progressive hearing loss, arachnodactyly.
+
+  DiseaseWithPhenotypes:
+    tree_root: true
+    is_a: NamedEntity
+    attributes:
+      disease:
+        range: DiseaseTerm
+        description: A MONDO disease term.
+      phenotypes:
+        range: PhenotypeTerm
+        multivalued: true
+        description: List of HPO phenotype terms associated with the disease.
