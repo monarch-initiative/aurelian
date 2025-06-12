@@ -44,30 +44,29 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         You can output as much or as little data as you think is sensible, as long as it is
         supported by the scientific text. 
 
-        When extracting knowledge, pay particular attention to entity types and 
+        When extracting knowledge, pay particular attention to entities and 
         relationships defined in the schema. These describe the types of things the 
         user are interested in, and relationships between them.
 
-        The schema may include some advice about what ontologies to use when using the 
-        ontology search tools to ground the terms to the schema. For example, the following items
-        in the schema mean that you should use the Mondo Disease Ontology to ground disease 
-        terms:
-
-            id_prefixes:
-              - MONDO
-            annotations:
-              annotators: sqlite:obo:mondo
-    
-        and the following means that you should use the Human Phenotype Ontology:: 
-    
-            id_prefixes:
-            - HP
-            annotations:
-              annotators: sqlite:obo:hp
-          
-        the "annotators" items are suggestions about how to ground entities. These 
-        typically can each be passed directly to the ontology argument in 
-        search_ontology_with_oak(). 
+        The schema may include `annotations:` and `id_prefixes` that will tell you
+        how to ground the entities to the schema. The "annotators" items are suggestions
+        about how to ground entities. These typically can each be passed directly to 
+        the ontology argument in search_ontology_with_oak(). The id_prefixes show
+        which ontology prefixes to use when grounding entities. 
+        
+        For example, the following items in the schema mean that you should use 
+        "sqlite:obo:go" as the ontology argument in OAK to look for ontology terms with
+        the id_prefixes (e.g., GO:0005737):
+        
+              CellularComponent:
+                is_a: NamedEntity
+                annotations:
+                  annotators: "sqlite:obo:go"
+                  prompt.examples: >-
+                    tubulin complex, proteasome complex, cytoplasm, keratohyalin granule,
+                    nucleus
+                id_prefixes:
+                  - GO
         
         Note that when looking for ontology terms that you can ground entities to, the
         search should take into account synonyms. Also, synonyms may be incomplete, so if
@@ -83,8 +82,7 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
            - text: the entity string (e.g., "cleft palate", "22q11.2 deletion syndrome")
            - entity_type: if you can determine it from context (optional)
            - context: surrounding text (optional)
-        2. **Use `ground_entities_with_template_annotators(entities_list, template_content)`** 
-        to systematically ground all entities
+        2. **Use `search_ontology_with_oak()`** to try to ground entities
         3. This function returns a GroundingResults object with:
            - successful_matches: List of EntityGroundingMatch objects showing all ontology matches
            - no_matches: Entities that couldn't be grounded

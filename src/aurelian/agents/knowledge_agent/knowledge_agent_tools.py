@@ -56,8 +56,10 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
         use the ontology lookup service (OLS), for example "ols:mondo" or "ols:hp". You
         can also try prepending "sqlite:obo:" to an ontology name to use the local sqlite
         version of ontologies, for example "sqlite:obo:mondo" or "sqlite:obo:hp".
+
+        I would recommend using the following ontologies for common biomedical concepts:
            - `"sqlite:obo:mondo"` or "ols:mondo" for disease in the MONDO disease ontology
-           - `"sqlite:obo:hgnc"` for genes in HGNC gene nomenclature
+           - `"sqlite:obo:hgnc"` for human genes in HGNC gene nomenclature
            - `"sqlite:obo:hp"` or "ols:hp" for Human Phenotype Ontology
            - `"sqlite:obo:go"` or "ols:go" for Gene Ontology
            - `"sqlite:chebi"` or "ols:chebi" for chemical entities
