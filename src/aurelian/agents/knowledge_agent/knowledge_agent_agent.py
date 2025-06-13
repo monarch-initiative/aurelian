@@ -15,6 +15,7 @@ from aurelian.agents.knowledge_agent.knowledge_agent_tools import (
     search_ontology_terms,
     ground_entities_with_template_annotators
 )
+from ..web.web_mcp import search_web
 
 
 def knowledge_agent(model="openai:gpt-4o", deps=None):
@@ -170,9 +171,11 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         ground a disease to MONDO, set:
               - `grounding_source: "mondo"`
         7. Output structured knowledge in a format matching the schema.
+        8. You can use `search_web()` to look up additional information if needed.
         """,
         tools=[
             search_ontology_with_oak,
+            search_web,
             # generate_and_validate_schema,  # Schema generator with LinkML validation
             # search_ontology_terms,  # Full ontology mapper agent delegation
             # ground_entities_with_template_annotators  # Systematic grounding with template annotators
