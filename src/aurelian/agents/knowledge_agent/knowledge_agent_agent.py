@@ -10,7 +10,7 @@ from .knowledge_agent_models import KnowledgeAgentOutput
 
 from aurelian.agents.knowledge_agent.knowledge_agent_config import KnowledgeAgentDependencies
 from aurelian.agents.knowledge_agent.knowledge_agent_tools import (
-    search_ontology_with_oak
+    search_ontology_with_oak, summarize_paper_with_paperqa
 )
 from ..web.web_mcp import search_web
 
@@ -46,20 +46,16 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         relationships defined in the schema. These describe the types of things the 
         user are interested in, and relationships between them.
 
-        The schema may include `annotations:` and `id_prefixes` that will tell you
-        how to ground the entities to the schema. The "annotators" items are suggestions
-        about how to ground entities. These typically can each be passed directly to 
-        the ontology argument in search_ontology_with_oak(). The id_prefixes show
-        which ontology prefixes to use when grounding entities. 
+        The schema may include `id_prefixes` that will tell you how to ground the 
+        entities to the schema. The id_prefixes show which ontology prefixes to use 
+        when grounding entities. 
         
         For example, the following items in the schema mean that you should use 
-        "sqlite:obo:go" as the ontology argument in OAK to look for ontology terms with
-        the id_prefixes (e.g., GO:0005737):
+        GO to ground entities of type CellularComponent.
         
               CellularComponent:
                 is_a: NamedEntity
                 annotations:
-                  annotators: "sqlite:obo:go"
                   prompt.examples: >-
                     tubulin complex, proteasome complex, cytoplasm, keratohyalin granule,
                     nucleus
@@ -93,7 +89,7 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         Some other guidelines:
         1. DO NOT RESPOND CONVERSATIONALLY. Output structured data only.
         2. Use the schema to guide your extraction of knowledge from the scientific text.
-        3. Ground entities to ontologies using `search_ontology_terms` for precise mapping.
+        3. Ground entities to ontologies using `search_ontology_with_oak` for precise mapping.
         4. It's okay to have entities that are not grounded, as long as you are sure they
         are actually entities present in the schema.
         5. **FOCUS ON RELATIONSHIPS**: Carefully analyze what is connected in the text. 
