@@ -1,6 +1,8 @@
 """Tools for the Knowledge Agent."""
 
 import os
+import urllib
+
 import yaml
 from typing import List, Tuple, Optional, Dict, Any
 
@@ -52,17 +54,25 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
 
     Args:
         term: The term to search for.
-        ontology: The ontology ID to search. You can try prepending "ols:" to an ontology name to
-        use the ontology lookup service (OLS), for example "ols:mondo" or "ols:hp". You
-        can also try prepending "sqlite:obo:" to an ontology name to use the local sqlite
-        version of ontologies, for example "sqlite:obo:mondo" or "sqlite:obo:hp".
+        ontology: The ontology ID to search. You can try prepending "ols:" to an ontology
+        name to use the ontology lookup service (OLS), for example "ols:mondo" or
+        "ols:hp". Try first using "ols:". You can also try prepending "sqlite:obo:" to
+        an ontology name to use the local sqlite version of ontologies, but
+        **you should prefer "ols:" because it seems to do better for finding
+        non-exact matches!**
 
-        I would recommend using the following ontologies for common biomedical concepts:
-           - `"sqlite:obo:mondo"` or "ols:mondo" for disease in the MONDO disease ontology
-           - `"sqlite:obo:hgnc"` for human genes in HGNC gene nomenclature
-           - `"sqlite:obo:hp"` or "ols:hp" for Human Phenotype Ontology
-           - `"sqlite:obo:go"` or "ols:go" for Gene Ontology
-           - `"sqlite:chebi"` or "ols:chebi" for chemical entities
+        Recommended ontologies for common biomedical concepts:
+            - "ols:mondo" — diseases from the MONDO disease ontology
+            - "sqlite:obo:hgnc" — human gene symbols from HGNC
+            - "ols:hp" — phenotypic features from the Human Phenotype Ontology
+            - "ols:go" — molecular functions, biological processes, and cellular
+            components from the Gene Ontology
+            - "ols:chebi" — chemical entities from the ChEBI ontology
+            - "ols:uberon" — anatomical structures from the Uberon ontology
+            - "ols:cl" — cell types from the Cell Ontology
+            - "ols:so" — sequence features from the Sequence Ontology
+            - "ols:pr" — protein entities from the Protein Ontology (PRO)
+            - "ols:ncit" — terms related to cancer and clinical research from the NCI Thesaurus
         n: The maximum number of results to return.
         verbose: Whether to print debug information.
 
@@ -74,7 +84,7 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
         adapter = get_adapter(ontology)
         results = adapter.basic_search(term)
         results = list(adapter.labels(results))
-    except ValueError as e:
+    except ValueError or urllib.error.URLError as e:
         print(f"## TOOL WARNING: Unable to search ontology '{ontology}' - {str(e)}")
         return None
     if n:

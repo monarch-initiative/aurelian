@@ -10,10 +10,7 @@ from .knowledge_agent_models import KnowledgeAgentOutput
 
 from aurelian.agents.knowledge_agent.knowledge_agent_config import KnowledgeAgentDependencies
 from aurelian.agents.knowledge_agent.knowledge_agent_tools import (
-    search_ontology_with_oak,
-    generate_and_validate_schema,
-    search_ontology_terms,
-    ground_entities_with_template_annotators
+    search_ontology_with_oak
 )
 from ..web.web_mcp import search_web
 
@@ -77,13 +74,14 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         "eye abnormality" instead. Also be sure to check for upper and lower case 
         variations of the term.
         
-        **STRUCTURED SYSTEMATIC APPROACH**: 
+        **Instructions for entity recognition, grounding**: 
         1. **Extract entities** from the text naturally as you read it and create 
         ExtractedEntity objects with:
            - text: the entity string (e.g., "cleft palate", "22q11.2 deletion syndrome")
            - entity_type: if you can determine it from context (optional)
            - context: surrounding text (optional)
-        2. **Use `search_ontology_with_oak()`** to try to ground entities
+        2. **Use `search_ontology_with_oak()`** to try to ground entities. You can try 
+        several times with different terms if needed.
         3. This function returns a GroundingResults object with:
            - successful_matches: List of EntityGroundingMatch objects showing all ontology matches
            - no_matches: Entities that couldn't be grounded
@@ -91,11 +89,7 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
            - summary: Human-readable summary
         4. Use the structured GroundingResults to populate your final output with proper 
         ontology mappings
-        
-        This ensures maximum grounding success by combining smart routing with direct 
-        ontology search. The schema acts as your guide for both what to extract and 
-        where to find standardized identifiers for each extracted entity.
-
+    
         Some other guidelines:
         1. DO NOT RESPOND CONVERSATIONALLY. Output structured data only.
         2. Use the schema to guide your extraction of knowledge from the scientific text.
@@ -104,68 +98,7 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         are actually entities present in the schema.
         5. **FOCUS ON RELATIONSHIPS**: Carefully analyze what is connected in the text. 
         The relationship below are particularly important, but you can use any relationships 
-        that are defined in the schema. Here are some common relationships you can use:
-           
-            biolink:has_phenotype
-            Description: Captures observable traits linked to diseases or genetic disorders.
-            Example: "Disease X has_phenotype fever."
-
-            biolink:gene_encodes_gene_product
-            Description: Connects a gene to the protein or RNA product it encodes.
-            Example: "The BRCA1 gene encodes the BRCA1 protein."
-
-            biolink:physically_interacts_with
-            Description: Indicates that two gene products bind or directly interact with each other.
-            Example: "Protein A physically interacts with Protein B."
-
-            biolink:causes
-            Description: Describes a direct causal link between an entity (e.g., variant, exposure) and a disease or phenotype.
-            Example: "Mutation in Gene X causes Disease Y."
-
-            biolink:positively_regulates
-            Description: Indicates that one entity increases the activity or expression of another.
-            Example: "Transcription factor X positively regulates Gene Y."
-
-            biolink:negatively_regulates
-            Description: Indicates that one entity decreases or represses the activity or expression of another.
-            Example: "miRNA Z negatively regulates Target A expression."
-            
-            biolink:associated_with
-            Description: Denotes a non-causal but statistically or biologically meaningful association between two entities.
-            Example: "Gene A is associated with Disease B."
-            
-            biolink:affects
-            Description: Indicates that one entity alters or influences another, without specifying the direction or mechanism.
-            Example: "Drug X affects blood pressure."
-            
-            biolink:treats
-            Description: Connects a treatment (e.g., drug, therapy) to a disease or condition it ameliorates.
-            Example: "Drug D treats Hypertension."
-            
-            biolink:inhibits
-            Description: Specifies that one entity suppresses the function, expression, or activity of another.
-            Example: "Compound X inhibits Enzyme Y."
-            
-            biolink:participates_in
-            Description: Links a molecular entity or process to a broader biological process or pathway.
-            Example: "Protein P participates in the apoptosis pathway."
-            
-            biolink:subclass_of
-            Description: Indicates a hierarchical relationship where one class is a more specific instance of another.
-            Example: "MicroRNA is a subclass_of GeneProduct."
-            
-            biolink:has_variant
-            Description: Connects a gene to a specific sequence variant.
-            Example: "Gene X has_variant X123Y."
-            
-            biolink:has_publication
-            Description: Associates an assertion or relationship with a supporting publication or citation.
-            Example: "This association has_publication PMID:123456."
-            
-            biolink:related_to
-            Description: A generic relationship used when the specific nature of the connection is unknown or broad.
-            Example: "Symptom A is related_to Disease B."
-            
+        that are defined in the schema. Here are some common relationships you can use:        
         6. **Track grounding sources**: When grounding entities, always populate the 
         `grounding_source` field with the source of the grounding. For example, if you 
         ground a disease to MONDO, set:
@@ -175,10 +108,7 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         """,
         tools=[
             search_ontology_with_oak,
-            search_web,
-            # generate_and_validate_schema,  # Schema generator with LinkML validation
-            # search_ontology_terms,  # Full ontology mapper agent delegation
-            # ground_entities_with_template_annotators  # Systematic grounding with template annotators
+            search_web
         ]
     )
 
