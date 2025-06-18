@@ -2,6 +2,7 @@
 
 import logging
 import os
+import warnings
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Optional, List, Tuple
 
@@ -1006,7 +1007,7 @@ def paperqa(ui, query, **kwargs):
 def knowledge_agent(ui, query, template, output, pdf, **kwargs):
     """Start the Knowledge Agent for scientific knowledge extraction.
 
-    The Knowledge Agent extracts structured knowledge from scientific text using 
+    The Knowledge Agent extracts structured knowledge from scientific text using
     LinkML schemas. It can automatically generate schemas or use provided templates.
 
     Examples:
@@ -1019,15 +1020,30 @@ def knowledge_agent(ui, query, template, output, pdf, **kwargs):
     if template and query:
         # Schema-based extraction
         from aurelian.agents.knowledge_agent.knowledge_agent_agent import run_sync
+
+        # check if template exists
+        if not template.exists():
+            warnings.warn(f"Template file {template} does not exist."
+                          f"Checking default templates...")
+
+            default_template_path = (Path(__file__).parent / "agents" /
+                                     "knowledge_agent" / "templates" / template.name)
+
+            if default_template_path.exists():
+                template = default_template_path
+            else:
+                raise click.UsageError(
+                    f"Template file {template} does not exist. Please provide a valid template.")
+
         schema_content = template.read_text() if template else None
         text_content = " ".join(query)
-        
+
         if pdf:
             # Extract text from PDFs
             from aurelian.agents.knowledge_agent.knowledge_agent_tools import process_pdf_files
             pdf_text = process_pdf_files([str(p) for p in pdf])
             text_content = f"{text_content}\n\n{pdf_text}" if text_content else pdf_text
-        
+
         prompt = f"""
         Schema: {schema_content}
         
@@ -1035,7 +1051,7 @@ def knowledge_agent(ui, query, template, output, pdf, **kwargs):
         
         Extract entities according to the schema.
         """
-        
+
         result = run_sync(prompt)
         if output:
             output.write_text(str(result.output))
@@ -1073,57 +1089,57 @@ def schema_generator(description, output, domain, complexity, ui, **kwargs):
 
     The generated schemas include proper ontology grounding and validation constraints.
     """
-    
+
     if ui:
         # UI mode - launch Gradio interface
         from aurelian.agents.schema_generator.schema_gradio import launch_gradio
-        
+
         # Launch Gradio interface
         launch_gradio(
             share=kwargs.get('share', False),
             server_port=kwargs.get('server_port', 7860)
         )
         return
-    
+
     # Direct generation mode
     if not description:
         click.echo("Error: Description is required when not using --ui mode")
         click.echo("Usage: aurelian schema-generator 'your description' or use --ui for interactive mode")
         return
-    
+
     import asyncio
     from aurelian.agents.schema_generator.schema_agent import run_with_validation
     from aurelian.agents.schema_generator.schema_config import get_schema_config
-    
+
     async def generate():
         deps = get_schema_config()
         description_text = " ".join(description)
-        
+
         # Add domain and complexity context
         enhanced_description = f"{description_text} (domain: {domain}, complexity: {complexity})"
-        
+
         click.echo(f"Generating schema for: {description_text}")
         click.echo(f"Domain: {domain}, Complexity: {complexity}")
-        
+
         try:
             schema_yaml = await run_with_validation(enhanced_description, deps)
-            
+
             if "validation failed" in schema_yaml.lower() or "error" in schema_yaml.lower():
                 click.echo(f"{schema_yaml}")
                 return
-            
+
             click.echo("Schema generated and validated successfully!")
-            
+
             if output:
                 output.write_text(schema_yaml)
                 click.echo(f"💾 Schema saved to: {output}")
             else:
                 click.echo("\n📋 Generated Schema:")
                 click.echo(schema_yaml)
-                
+
         except Exception as e:
             click.echo(f"Error: {e}")
-    
+
     asyncio.run(generate())
 
 

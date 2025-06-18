@@ -72,7 +72,9 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
             - "ols:cl" — cell types from the Cell Ontology
             - "ols:so" — sequence features from the Sequence Ontology
             - "ols:pr" — protein entities from the Protein Ontology (PRO)
-            - "ols:ncit" — terms related to cancer and clinical research from the NCI Thesaurus
+            - "ols:ncit" — terms related to clinical research from the NCI Thesaurus
+            - "ols:snomed" - SNOMED CT terms for clinical concepts. This includes
+            LOINC, if you need to search for clinical measurements/tests
         n: The maximum number of results to return.
         verbose: Whether to print debug information.
 

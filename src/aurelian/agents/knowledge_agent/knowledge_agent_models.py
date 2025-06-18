@@ -25,6 +25,7 @@ class SimpleRelationship(BaseModel):
     subject: str = Field(..., description="Subject entity text")
     predicate: str = Field(..., description="Relationship type from schema")
     object: str = Field(..., description="Object entity text")
+    text: Optional[List[int]] = Field(None, description="The original text supporting the relationship")
 
 
 class MissingEntity(BaseModel):

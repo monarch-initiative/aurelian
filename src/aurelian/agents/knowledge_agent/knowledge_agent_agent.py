@@ -1,7 +1,9 @@
 """Knowledge Agent for scientific knowledge extraction."""
 
-from typing import Any
+from typing import Any, Union, Optional
 import time
+import re
+from pathlib import Path
 
 from pydantic_ai import Agent
 import logfire
@@ -10,9 +12,67 @@ from .knowledge_agent_models import KnowledgeAgentOutput
 
 from aurelian.agents.knowledge_agent.knowledge_agent_config import KnowledgeAgentDependencies
 from aurelian.agents.knowledge_agent.knowledge_agent_tools import (
-    search_ontology_with_oak, summarize_paper_with_paperqa
+    search_ontology_with_oak
 )
 from ..web.web_mcp import search_web
+
+
+# Path to templates directory
+TEMPLATES_DIR = Path(__file__).parent / "templates"
+
+
+def load_template(template_name: str) -> Optional[str]:
+    """Load a template by name.
+    
+    Args:
+        template_name: The name of the template or path to the template
+        
+    Returns:
+        The template content or None if not found
+    """
+    # If the template_name is a full path, try to load it directly
+    template_path = Path(template_name)
+    if template_path.exists() and template_path.is_file():
+        return template_path.read_text()
+    
+    # If it's just a name, check if it's in the templates directory
+    if not template_name.endswith(".yaml"):
+        template_name += ".yaml"
+    
+    template_path = TEMPLATES_DIR / template_name
+    if template_path.exists() and template_path.is_file():
+        return template_path.read_text()
+    
+    # Also try the name without extension
+    template_path = TEMPLATES_DIR / template_name.replace(".yaml", "")
+    if template_path.exists() and template_path.is_file():
+        return template_path.read_text()
+    
+    return None
+
+
+def extract_template_name(prompt: str) -> Optional[str]:
+    """Extract template name from the prompt if mentioned.
+    
+    Args:
+        prompt: The user prompt
+        
+    Returns:
+        The template name if found, None otherwise
+    """
+    # Look for patterns like "using the X template" or "with template X"
+    patterns = [
+        r"using\s+the\s+([a-zA-Z0-9_-]+)(?:\s+template|\s+schema)",
+        r"with\s+(?:the\s+)?(?:template|schema)\s+([a-zA-Z0-9_-]+)",
+        r"template\s+(?:is|named|called)\s+([a-zA-Z0-9_-]+)",
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, prompt, re.IGNORECASE)
+        if match:
+            return match.group(1)
+    
+    return None
 
 
 def knowledge_agent(model="openai:gpt-4o", deps=None):
@@ -39,8 +99,8 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         unstructured scientific text and output structured scientific knowledge that is 
         aligned to a LinkML schema that describes the knowledge the user wants to extract.
 
-        You can output as much or as little data as you think is sensible, as long as it is
-        supported by the scientific text. 
+        You can output as much or as little knowledge as you think is sensible, as long
+        as it is supported by the scientific text. 
 
         When extracting knowledge, pay particular attention to entities and 
         relationships defined in the schema. These describe the types of things the 
@@ -85,7 +145,18 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
            - summary: Human-readable summary
         4. Use the structured GroundingResults to populate your final output with proper 
         ontology mappings
-    
+        
+        **Instructions for relationship extraction**:
+        1. **Extract relationships** between entities as you read the text.
+        2. Use the schema to determine the relationship types and their properties.
+        3. Create Relationship objects with:
+              - subject: the subject entity text
+              - predicate: the relationship type (e.g., "biolink:related_to", 
+              "biolink:treats", "biolink:interacts_with")
+              - object: the object entity text
+              - text: the original text supporting the relationship
+
+            
         Some other guidelines:
         1. DO NOT RESPOND CONVERSATIONALLY. Output structured data only.
         2. Use the schema to guide your extraction of knowledge from the scientific text.
@@ -94,7 +165,7 @@ def knowledge_agent(model="openai:gpt-4o", deps=None):
         are actually entities present in the schema.
         5. **FOCUS ON RELATIONSHIPS**: Carefully analyze what is connected in the text. 
         The relationship below are particularly important, but you can use any relationships 
-        that are defined in the schema. Here are some common relationships you can use:        
+        that are defined in the schema.
         6. **Track grounding sources**: When grounding entities, always populate the 
         `grounding_source` field with the source of the grounding. For example, if you 
         ground a disease to MONDO, set:
@@ -126,6 +197,25 @@ def run_sync(prompt: str, deps: KnowledgeAgentDependencies = None, **kwargs) -> 
         logfire.info("Starting knowledge extraction",
                      prompt_length=len(prompt),
                      model=kwargs.get("model", "openai:gpt-4o"))
+        
+        # Check if the prompt mentions a template name
+        template_name = extract_template_name(prompt)
+        if template_name:
+            logfire.info(f"Detected template reference: {template_name}")
+            template_content = load_template(template_name)
+            
+            if template_content:
+                # Format the prompt with the schema content
+                prompt = f"""
+                Schema: {template_content}
+                
+                Text: {prompt}
+                
+                Extract entities according to the schema.
+                """
+                logfire.info(f"Loaded template: {template_name}")
+            else:
+                logfire.warning(f"Failed to load template: {template_name}")
 
         try:
             if deps is None:
