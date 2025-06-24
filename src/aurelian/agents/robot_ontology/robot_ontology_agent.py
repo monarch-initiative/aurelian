@@ -92,7 +92,10 @@ robot_ontology_agent = Agent(
 
 @robot_ontology_agent.system_prompt
 def include_templates_in_prompt(ctx: RunContext[RobotDependencies]) -> str:
-    files_names = ctx.deps.workdir.list_file_names()
+    if ctx.deps.workdir:
+        files_names = ctx.deps.workdir.list_file_names()
+    else:
+        files_names = []
     s = "Working directory files/templates:"
     if files_names:
         for f in files_names:

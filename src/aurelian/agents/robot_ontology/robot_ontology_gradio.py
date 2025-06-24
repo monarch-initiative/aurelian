@@ -31,7 +31,7 @@ def chat(deps: Optional[RobotDependencies] = None, **kwargs):
             query += "## History"
             for h in history:
                 query += f"\n{h}"
-        result = run_sync(lambda: robot_ontology_agent.chat(
+        result = run_sync(lambda: robot_ontology_agent.run_sync(
             query, deps=deps, **kwargs))
         return result.data
 

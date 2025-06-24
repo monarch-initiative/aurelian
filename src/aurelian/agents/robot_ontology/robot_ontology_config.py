@@ -8,9 +8,15 @@ from aurelian.dependencies.workdir import WorkDir, HasWorkdir
 @dataclass
 class RobotDependencies(HasWorkdir):
     """Configuration for the ROBOT ontology agent."""
-    workdir: WorkDir = field(default_factory=lambda: WorkDir())
+    workdir: Optional[WorkDir] = None
     prefix_map: Dict[str, str] = field(
         default_factory=lambda: {"ex": "http://example.org/"})
+
+    def __post_init__(self):
+        """Initialize the config with default values."""
+        # Initialize workdir if not provided
+        if self.workdir is None:
+            self.workdir = WorkDir()
 
 
 def get_config() -> RobotDependencies:
