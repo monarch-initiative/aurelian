@@ -20,7 +20,7 @@ class Message(BaseModel):
     role: str
     content: str
 
-
+@pytest.mark.skipif(Client is None, reason="mcp package not found")
 @pytest.mark.asyncio
 async def test_gocam_mcp():
     """Test the GOCAM MCP agent."""
