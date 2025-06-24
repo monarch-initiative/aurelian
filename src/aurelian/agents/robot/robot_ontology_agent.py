@@ -76,8 +76,6 @@ Use scientific language as far as possible. For IDs, these should be numeric cur
 """
 
 
-
-
 robot_ontology_agent = Agent(
     model="openai:gpt-4o",
     deps_type=RobotDependencies,
@@ -110,10 +108,6 @@ def include_prefixes_in_prompt(ctx: RunContext[RobotDependencies]) -> str:
     return f"Prefixes: {pmap}"
 
 
-
-
-
-
 def chat(workdir: str, **kwargs):
     import gradio as gr
     deps = RobotDependencies()
@@ -126,7 +120,8 @@ def chat(workdir: str, **kwargs):
             query += "## History"
             for h in history:
                 query += f"\n{h}"
-        result = run_sync(lambda: robot_ontology_agent.run_sync(query, deps=deps, **kwargs))
+        result = run_sync(lambda: robot_ontology_agent.run_sync(
+            query, deps=deps, **kwargs))
         return result.data
 
     return gr.ChatInterface(

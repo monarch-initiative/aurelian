@@ -13,11 +13,11 @@ from aurelian.utils.async_utils import run_sync
 def chat(deps: Optional[RobotDependencies] = None, **kwargs):
     """
     Initialize a chat interface for the ROBOT ontology agent.
-    
+
     Args:
         deps: Optional dependencies configuration
         **kwargs: Additional arguments to pass to the agent
-        
+
     Returns:
         A Gradio chat interface
     """
@@ -31,7 +31,8 @@ def chat(deps: Optional[RobotDependencies] = None, **kwargs):
             query += "## History"
             for h in history:
                 query += f"\n{h}"
-        result = run_sync(lambda: robot_ontology_agent.chat(query, deps=deps, **kwargs))
+        result = run_sync(lambda: robot_ontology_agent.chat(
+            query, deps=deps, **kwargs))
         return result.data
 
     return gr.ChatInterface(
