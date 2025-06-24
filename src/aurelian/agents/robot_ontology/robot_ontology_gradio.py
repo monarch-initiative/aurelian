@@ -6,7 +6,7 @@ from typing import List, Optional
 import gradio as gr
 
 from aurelian.agents.robot_ontology.robot_ontology_agent import robot_ontology_agent
-from aurelian.agents.robot_ontology.robot_config import RobotDependencies
+from src.aurelian.agents.robot_ontology.robot_ontology_config import RobotDependencies
 from aurelian.utils.async_utils import run_sync
 
 
