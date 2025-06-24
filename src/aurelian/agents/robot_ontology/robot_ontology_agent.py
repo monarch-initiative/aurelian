@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from typing import List, Dict
 
 from aurelian.agents.filesystem.filesystem_tools import inspect_file, download_url_as_markdown, list_files
-from aurelian.agents.robot.robot_config import RobotDependencies
-from aurelian.agents.robot.robot_tools import write_and_compile_template, fetch_documentation
+from aurelian.agents.robot_ontology.robot_config import RobotDependencies
+from aurelian.agents.robot_ontology.robot_tools import write_and_compile_template, fetch_documentation
 from aurelian.utils.async_utils import run_sync
 from aurelian.utils.search_utils import web_search
 from pydantic_ai import Agent, RunContext, Tool

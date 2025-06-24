@@ -2,8 +2,8 @@ from typing import Optional, List
 
 from pydantic_ai import RunContext, ModelRetry
 
-from aurelian.agents.robot.assets import ROBOT_ONTOLOGY_AGENT_CONTENTS_DIR
-from aurelian.agents.robot.robot_config import RobotDependencies
+from aurelian.agents.robot_ontology.assets import ROBOT_ONTOLOGY_AGENT_CONTENTS_DIR
+from aurelian.agents.robot_ontology.robot_config import RobotDependencies
 from aurelian.utils.robot_ontology_utils import run_robot_template_command
 
 

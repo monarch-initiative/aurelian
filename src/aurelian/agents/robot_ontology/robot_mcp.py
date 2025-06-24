@@ -8,9 +8,9 @@ from typing import Optional, List
 from mcp.server.fastmcp import FastMCP
 
 import aurelian.agents.filesystem.filesystem_tools as fst
-from aurelian.agents.robot.robot_ontology_agent import SYSTEM
-import aurelian.agents.robot.robot_tools as rt
-from aurelian.agents.robot.robot_config import RobotDependencies
+from aurelian.agents.robot_ontology.robot_ontology_agent import SYSTEM
+import aurelian.agents.robot_ontology.robot_tools as rt
+from aurelian.agents.robot_ontology.robot_config import RobotDependencies
 from pydantic_ai import RunContext, ModelRetry
 
 # Initialize FastMCP server
