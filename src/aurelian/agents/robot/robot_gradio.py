@@ -6,11 +6,11 @@ from typing import List, Optional
 import gradio as gr
 
 from aurelian.agents.robot.robot_ontology_agent import robot_ontology_agent
-from aurelian.agents.robot.robot_config import RobotOntologyDependencies
+from aurelian.agents.robot.robot_config import RobotDependencies
 from aurelian.utils.async_utils import run_sync
 
 
-def chat(deps: Optional[RobotOntologyDependencies] = None, **kwargs):
+def chat(deps: Optional[RobotDependencies] = None, **kwargs):
     """
     Initialize a chat interface for the ROBOT ontology agent.
     
@@ -22,7 +22,7 @@ def chat(deps: Optional[RobotOntologyDependencies] = None, **kwargs):
         A Gradio chat interface
     """
     if deps is None:
-        deps = RobotOntologyDependencies()
+        deps = RobotDependencies()
 
     def get_info(query: str, history: List[str]) -> str:
         print(f"QUERY: {query}")
