@@ -18,7 +18,7 @@ class Message(BaseModel):
     role: str
     content: str
 
-
+@pytest.mark.asyncio
 async def test_phenopackets_mcp():
     """Test the phenopackets MCP agent."""
     client = Client("/tmp/phenopackets-mcp", exec_args=["python", "-m", "aurelian.agents.phenopackets.phenopackets_mcp"])
