@@ -3,6 +3,7 @@ Test for AmiGO MCP functionality
 """
 import os
 import tempfile
+import pytest
 from typing import List, Optional, Dict
 
 # try to import, don't die if import fails
@@ -20,9 +21,11 @@ class Message(BaseModel):
     content: str
 
 
+@pytest.mark.asyncio
 async def test_amigo_mcp():
     """Test the AmiGO MCP agent."""
-    client = Client("/tmp/amigo-mcp", exec_args=["python", "-m", "aurelian.agents.amigo.amigo_mcp"])
+    client = Client(
+        "/tmp/amigo-mcp", exec_args=["python", "-m", "aurelian.agents.amigo.amigo_mcp"])
 
     import time
     time.sleep(1)  # Give the server time to start
@@ -43,7 +46,8 @@ async def test_amigo_mcp():
         return msg
 
     # Make a query
-    add_to_convo("user", "What tools are available for working with Gene Ontology?")
+    add_to_convo(
+        "user", "What tools are available for working with Gene Ontology?")
 
     message = convo[-1].content
 
@@ -55,19 +59,22 @@ async def test_amigo_mcp():
     print(f"Available tools: {[t['id'] for t in tool_choices]}")
 
     # Test gene association lookup
-    find_gene_associations_tool = next((t for t in tool_choices if t["id"] == "find_gene_associations"), None)
+    find_gene_associations_tool = next(
+        (t for t in tool_choices if t["id"] == "find_gene_associations"), None)
     if find_gene_associations_tool:
         print(f"Testing find_gene_associations tool...")
         tool_input = '{"gene_id": "UniProtKB:P04637"}'  # p53
         try:
             tool_result = await client.execute_tool(tool_id=find_gene_associations_tool["id"], tool_input=tool_input)
             print(f"find_gene_associations result length: {len(tool_result)}")
-            print(f"First result: {tool_result[:200]}...")  # Just show first 200 chars
+            # Just show first 200 chars
+            print(f"First result: {tool_result[:200]}...")
         except Exception as e:
             print(f"find_gene_associations failed (expected in test): {e}")
 
     # Test PMID lookup
-    lookup_pmid_tool = next((t for t in tool_choices if t["id"] == "lookup_pmid"), None)
+    lookup_pmid_tool = next(
+        (t for t in tool_choices if t["id"] == "lookup_pmid"), None)
     if lookup_pmid_tool:
         print(f"Testing lookup_pmid tool...")
         tool_input = '{"pmid": "PMID:19661248"}'

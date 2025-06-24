@@ -3,6 +3,7 @@ Test for GOCAM MCP functionality
 """
 import os
 import tempfile
+import pytest
 from typing import List, Optional, Dict
 
 # try to import, don't die if import fails
@@ -20,9 +21,11 @@ class Message(BaseModel):
     content: str
 
 
+@pytest.mark.asyncio
 async def test_gocam_mcp():
     """Test the GOCAM MCP agent."""
-    client = Client("/tmp/gocam-mcp", exec_args=["python", "-m", "aurelian.agents.gocam.gocam_mcp"])
+    client = Client(
+        "/tmp/gocam-mcp", exec_args=["python", "-m", "aurelian.agents.gocam.gocam_mcp"])
 
     import time
     time.sleep(1)  # Give the server time to start
@@ -57,7 +60,8 @@ async def test_gocam_mcp():
     print(f"Available tools: {[t['id'] for t in tool_choices]}")
 
     # Test the list_files tool
-    list_files_tool = next((t for t in tool_choices if t["id"] == "list_files"), None)
+    list_files_tool = next(
+        (t for t in tool_choices if t["id"] == "list_files"), None)
     if list_files_tool:
         print(f"Testing list_files tool...")
         tool_input_schema = await client.get_tool_input_schema(tool_id=list_files_tool["id"])
@@ -65,7 +69,8 @@ async def test_gocam_mcp():
         print(f"list_files result: {tool_result}")
 
     # Create a test file
-    write_file_tool = next((t for t in tool_choices if t["id"] == "write_to_file"), None)
+    write_file_tool = next(
+        (t for t in tool_choices if t["id"] == "write_to_file"), None)
     if write_file_tool:
         print(f"Testing write_to_file tool...")
         tool_input = '{"file_name": "gocam_test.txt", "data": "This is a test file for GOCAM MCP"}'
@@ -78,7 +83,8 @@ async def test_gocam_mcp():
         print(f"list_files after writing: {tool_result}")
 
     # Read the file
-    inspect_file_tool = next((t for t in tool_choices if t["id"] == "inspect_file"), None)
+    inspect_file_tool = next(
+        (t for t in tool_choices if t["id"] == "inspect_file"), None)
     if inspect_file_tool:
         print(f"Testing inspect_file tool...")
         tool_input = '{"data_file": "gocam_test.txt"}'
@@ -86,29 +92,35 @@ async def test_gocam_mcp():
         print(f"inspect_file result: {tool_result}")
 
     # Try search function
-    search_tool = next((t for t in tool_choices if t["id"] == "search_gocams"), None)
+    search_tool = next(
+        (t for t in tool_choices if t["id"] == "search_gocams"), None)
     if search_tool:
         print(f"Testing search_gocams tool...")
         tool_input = '{"query": "apoptosis"}'
         try:
             tool_result = await client.execute_tool(tool_id=search_tool["id"], tool_input=tool_input)
-            print(f"search_gocams result: {tool_result[:200]}...")  # Just show first 200 chars
+            # Just show first 200 chars
+            print(f"search_gocams result: {tool_result[:200]}...")
         except Exception as e:
             print(f"search_gocams failed (expected in test): {e}")
-    
+
     # Test fetch_document
-    fetch_doc_tool = next((t for t in tool_choices if t["id"] == "fetch_document"), None)
+    fetch_doc_tool = next(
+        (t for t in tool_choices if t["id"] == "fetch_document"), None)
     if fetch_doc_tool:
         print(f"Testing fetch_document tool...")
         tool_input = '{"name": "Signaling receptor activity annotation guidelines"}'
         try:
             tool_result = await client.execute_tool(tool_id=fetch_doc_tool["id"], tool_input=tool_input)
-            print(f"fetch_document result: {tool_result[:200]}...")  # Just show first 200 chars
+            # Just show first 200 chars
+            print(f"fetch_document result: {tool_result[:200]}...")
         except Exception as e:
-            print(f"fetch_document failed (expected in test without available docs): {e}")
-    
+            print(
+                f"fetch_document failed (expected in test without available docs): {e}")
+
     # Test validate_gocam_model
-    validate_tool = next((t for t in tool_choices if t["id"] == "validate_gocam_model"), None)
+    validate_tool = next(
+        (t for t in tool_choices if t["id"] == "validate_gocam_model"), None)
     if validate_tool:
         print(f"Testing validate_gocam_model tool...")
         valid_model = '{"model_data": "{\\"id\\": \\"gomodel:test123\\", \\"title\\": \\"Test Model\\"}", "format": "json"}'

@@ -2,14 +2,16 @@
 MCP tools for creating LinkML schemas and example datasets
 """
 import sys
-
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 
 # Initialize FastMCP server
 mcp = FastMCP("test")
 
+
 @mcp.tool()
+@pytest.mark.asyncio
 async def add_two_numbers(n1: int, n2: int) -> int:
     """
     Add two numbers together.
