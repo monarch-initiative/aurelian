@@ -180,7 +180,7 @@ def run_agent(
 
     # Set workdir if provided
     if 'workdir' in agent_options and agent_options['workdir']:
-        if hasattr(deps, 'workdir'):
+        if hasattr(deps, 'workdir') and deps.workdir:
             deps.workdir.location = agent_options['workdir']
 
     # Remove workdir from agent options to avoid duplicates
