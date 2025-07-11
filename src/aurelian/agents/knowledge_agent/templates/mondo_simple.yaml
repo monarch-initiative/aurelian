@@ -33,7 +33,7 @@ classes:
     id_prefixes:
       - MONDO
     annotations:
-      annotators: sqlite:obo:mondo
+      annotators: ols:mondo
       prompt: >-
         The name of a MONDO Disease Ontology term.
         Examples include: neurothekoma, retinal vasculitis,
@@ -45,14 +45,13 @@ classes:
     id_prefixes:
       - HP
     annotations:
-      annotators: sqlite:obo:hp
+      annotators: ols:hp
       prompt: >-
         The name of a Human Phenotype Ontology (HPO) term.
         Examples include: seizures, progressive hearing loss, arachnodactyly.
 
   DiseaseWithPhenotypes:
     tree_root: true
-    is_a: NamedEntity
     attributes:
       disease:
         range: DiseaseTerm
