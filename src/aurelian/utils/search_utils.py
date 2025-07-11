@@ -2,6 +2,7 @@ import re
 
 import requests
 from duckduckgo_search import DDGS
+from duckduckgo_search.exceptions import DuckDuckGoSearchException
 from markdownify import markdownify
 
 from aurelian.utils.pubmed_utils import doi_to_pmid, extract_doi_from_url, get_pmcid_text, get_pmid_text
@@ -25,12 +26,20 @@ def web_search(query: str, max_results=10, **kwargs) -> str:
     Returns:
 
     """
-    ddgs = DDGS(**kwargs)
-    results = ddgs.text(query, max_results=max_results)
-    if len(results) == 0:
-        return "No results found! Try a less restrictive/shorter query."
-    postprocessed_results = [f"[{result['title']}]({result['href']})\n{result['body']}" for result in results]
-    return "## Search Results\n\n" + "\n\n".join(postprocessed_results)
+    try:
+        ddgs = DDGS(**kwargs)
+        results = ddgs.text(query, max_results=max_results)
+        if len(results) == 0:
+            return "No results found! Try a less restrictive/shorter query."
+        postprocessed_results = [f"[{result['title']}]({result['href']})\n{result['body']}" for result in results]
+        return "## Search Results\n\n" + "\n\n".join(postprocessed_results)
+    except DuckDuckGoSearchException as e:
+        if "Ratelimit" in str(e):
+            return "## Search Results\n\nWeb search temporarily unavailable due to rate limiting. Please try again later."
+        else:
+            return f"## Search Results\n\nWeb search error: {str(e)}"
+    except Exception as e:
+        return f"## Search Results\n\nUnexpected search error: {str(e)}"
 
 
 def retrieve_web_page(url: str) -> str:
