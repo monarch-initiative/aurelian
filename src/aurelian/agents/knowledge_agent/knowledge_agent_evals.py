@@ -59,3 +59,7 @@ def create_comprehensive_eval_dataset() -> Dataset[str, str, MetadataDict]:
         cases=all_cases,
         evaluators=evaluators
     )
+
+def create_eval_dataset() -> Dataset[str, str, MetadataDict]:
+    """Create evaluation dataset for the knowledge agent (alias for comprehensive dataset)."""
+    return create_comprehensive_eval_dataset()
