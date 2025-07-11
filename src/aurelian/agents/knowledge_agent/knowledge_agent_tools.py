@@ -86,8 +86,8 @@ async def search_ontology_with_oak(term: str, ontology: str, n: int = 10, verbos
         adapter = get_adapter(ontology)
         results = adapter.basic_search(term)
         results = list(adapter.labels(results))
-    except ValueError or urllib.error.URLError as e:
-        print(f"## TOOL WARNING: Unable to search ontology '{ontology}' - {str(e)}")
+    except (ValueError, urllib.error.URLError, KeyError) as e:
+        print(f"## TOOL WARNING: Unable to search ontology '{ontology}' - unknown url type: '{ontology}'")
         return None
     if n:
         results = list(results)[:n]
