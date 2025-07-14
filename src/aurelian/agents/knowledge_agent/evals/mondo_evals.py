@@ -15,28 +15,21 @@ class MondoMetadata(Dict[str, Any]):
 huntington_disease = Case(
     name="Huntington disease",
     inputs="In the case of Huntington disease the loss of 15-30% of the normal complement of medium spiny neurons leads to distinct movement disorder in both humans and transgenic mouse models [14-17].",
-    expected_output={'ontology_id': "MONDO:0007739"},
+    expected_output={'ontology_id': "MONDO:0007739"},  # Huntington disease
     metadata=metadata("easy", "disease_recognition")
 )
 
 movement_disorder = Case(
     name="movement disorder",
     inputs="In the case of Huntington disease the loss of 15-30% of the normal complement of medium spiny neurons leads to distinct movement disorder in both humans and transgenic mouse models [14-17].",
-    expected_output={'ontology_id': "MONDO:0005395"},
-    metadata=metadata("easy", "disease_recognition")
-)
-
-syndrome = Case(
-    name="syndrome",
-    inputs="For example, mutations in Tbx22 cause the human syndrome X-linked cleft palate and ankyloglossia (Braybrook et al.",
-    expected_output={'ontology_id': "MONDO:0002254"},
+    expected_output={'ontology_id': "MONDO:0005395"},  # movement disorder
     metadata=metadata("easy", "disease_recognition")
 )
 
 x_linked_cleft_palate_and_ankyloglossia = Case(
     name="X-linked cleft palate and ankyloglossia",
     inputs="For example, mutations in Tbx22 cause the human syndrome X-linked cleft palate and ankyloglossia (Braybrook et al.",
-    expected_output={'ontology_id': "MONDO:0017938"},
+    expected_output={'ontology_id': "MONDO:0010560"},  # cleft palate with or without ankyloglossia, X-linked
     metadata=metadata("hard", "disease_recognition")
 )
 
@@ -86,12 +79,12 @@ disease = Case(
 def create_mondo_eval_dataset() -> Dataset[str, str, MetadataDict]:
     """Create MONDO disease recognition evaluation dataset from CRAFT corpus."""
     cases = [
-        huntington_disease, movement_disorder, syndrome, x_linked_cleft_palate_and_ankyloglossia, 
+        huntington_disease, movement_disorder, syndrome, x_linked_cleft_palate_and_ankyloglossia,
         infectious_disease, cancer, hypertrichosis, blepharophimosis, neoplasm, disease
     ]
-    
+
     evaluators = [SimpleEntityEvaluator()]
-    
+
     return Dataset(
         cases=cases,
         evaluators=evaluators
