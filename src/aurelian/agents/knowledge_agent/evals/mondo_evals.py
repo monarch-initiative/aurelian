@@ -65,13 +65,107 @@ mucolipidosis_type_IV = Case(
     metadata=metadata("easy", "disease_recognition")
 )
 
+opitz_syndrome = Case(
+    name="Opitz G/BBB syndrome",
+    inputs="Opitz G/BBB syndrome is a genetic disorder characterized by developmental midline abnormalities, such as hypertelorism, cleft palate, and hypospadias.",
+    expected_output={'ontology_id': "MONDO:0017138"},
+    metadata=metadata("medium", "disease_recognition")
+)
+
+prostate_cancer = Case(
+    name="prostate cancer",
+    inputs="Complete inactivation of the PTEN tumor suppressor gene is extremely common in advanced cancer, including prostate cancer (CaP).",
+    expected_output={'ontology_id': "MONDO:0008315"},
+    metadata=metadata("easy", "disease_recognition")
+)
+
+fragile_x_syndrome = Case(
+    name="fragile X syndrome", 
+    inputs="For example, expression defects in the KH domain proteins NOVA and FMRP are known to cause paraneoplastic neurologic disorders and the fragile X syndrome, respectively, in humans.",
+    expected_output={'ontology_id': "MONDO:0010383"},
+    metadata=metadata("medium", "disease_recognition")
+)
+
+nephrogenic_diabetes_insipidus = Case(
+    name="nephrogenic diabetes insipidus",
+    inputs="Congenital nephrogenic diabetes insipidus (NDI) is a disease characterized by failure of the kidney to concentrate urine in response to vasopressin.",
+    expected_output={'ontology_id': "MONDO:0016383"},
+    metadata=metadata("hard", "disease_recognition")
+)
+
+breast_cancer = Case(
+    name="breast cancer",
+    inputs="BRCA2 was the second breast cancer susceptibility gene to be discovered, and was isolated through positional cloning using data from families with inherited breast cancer.",
+    expected_output={'ontology_id': "MONDO:0007254"},
+    metadata=metadata("easy", "disease_recognition")
+)
+
+late_infantile_neuronal_ceroid_lipofuscinosis = Case(
+    name="late-infantile neuronal ceroid lipofuscinosis",
+    inputs="In humans, defects in expression of this enzyme lead to a fatal neurodegenerative disease, classical late-infantile neuronal ceroid lipofuscinosis.",
+    expected_output={'ontology_id': "MONDO:0015674"},
+    metadata=metadata("hard", "disease_recognition")
+)
+
+acute_erythroid_leukemia = Case(
+    name="erythroleukemia",
+    inputs="Transgenic studies in zebrafish and other model organisms have provided insights into the molecular mechanisms underlying various blood cancers including erythroleukemia.",
+    expected_output={'ontology_id': "MONDO:0017858"},
+    metadata=metadata("medium", "disease_recognition")
+)
+
+spinocerebellar_ataxia_15 = Case(
+    name="Spinocerebellar Ataxia 15",
+    inputs="We observed a severe autosomal recessive movement disorder in mice used within our laboratory and found it underlies Spinocerebellar Ataxia 15 in humans.",
+    expected_output={'ontology_id': "MONDO:0011694"},
+    metadata=metadata("hard", "disease_recognition")
+)
+
+peliosis_hepatis = Case(
+    name="peliosis hepatis",
+    inputs="Liver pathologies that closely resemble the human syndrome known as peliosis hepatis that has been described in association with Bartonella henselae infection, long-term high-dose androgen therapy, or rarely with advanced cancers.",
+    expected_output={'ontology_id': "MONDO:0004717"},
+    metadata=metadata("hard", "disease_recognition")
+)
+
+cerebellar_ataxia = Case(
+    name="ataxia",
+    inputs="Neurotrophin-3 acts as a chemoattractant for sensory axons and its deficiency can lead to movement disorders including ataxia.",
+    expected_output={'ontology_id': "MONDO:0000437"},
+    metadata=metadata("medium", "disease_recognition")
+)
+
+cystic_fibrosis = Case(
+    name="cystic fibrosis",
+    inputs="Cystic fibrosis is a genetic disorder that affects primarily the lungs and digestive system, caused by mutations in the CFTR gene.",
+    expected_output={'ontology_id': "MONDO:0009061"},
+    metadata=metadata("easy", "disease_recognition")
+)
+
+duchenne_muscular_dystrophy = Case(
+    name="Duchenne muscular dystrophy",
+    inputs="Duchenne muscular dystrophy is a severe form of muscular dystrophy caused by mutations in the dystrophin gene, leading to progressive muscle degeneration.",
+    expected_output={'ontology_id': "MONDO:0010679"},
+    metadata=metadata("medium", "disease_recognition")
+)
+
+retinoblastoma = Case(
+    name="retinoblastoma",
+    inputs="Retinoblastoma is the most common primary intraocular malignancy in children, arising from the neural retina and caused by mutations in the RB1 gene.",
+    expected_output={'ontology_id': "MONDO:0008380"},
+    metadata=metadata("medium", "disease_recognition")
+)
+
 
 def create_mondo_eval_dataset() -> Dataset[str, str, MetadataDict]:
     """Create MONDO disease recognition evaluation dataset from CRAFT corpus."""
     cases = [
         huntington_disease, movement_disorder, x_linked_cleft_palate_and_ankyloglossia,
         congenital_adrenal_hypoplasia, severe_acute_respiratory_syndrome,
-        mucolipidosis_type_IV
+        mucolipidosis_type_IV, opitz_syndrome, prostate_cancer, fragile_x_syndrome,
+        nephrogenic_diabetes_insipidus, breast_cancer, late_infantile_neuronal_ceroid_lipofuscinosis,
+        acute_erythroid_leukemia, spinocerebellar_ataxia_15, peliosis_hepatis, cerebellar_ataxia,
+        cystic_fibrosis, duchenne_muscular_dystrophy, retinoblastoma
     ]
 
     evaluators = [SimpleEntityEvaluator()]
