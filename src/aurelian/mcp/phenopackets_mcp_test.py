@@ -3,6 +3,7 @@ Test for phenopackets MCP functionality
 """
 import os
 import tempfile
+import pytest
 from typing import List, Optional, Dict
 
 # try to import, don't die if import fails
@@ -18,10 +19,12 @@ class Message(BaseModel):
     role: str
     content: str
 
-
+@pytest.mark.skipif(Client is None, reason="mcp package not found")
+@pytest.mark.asyncio
 async def test_phenopackets_mcp():
     """Test the phenopackets MCP agent."""
-    client = Client("/tmp/phenopackets-mcp", exec_args=["python", "-m", "aurelian.agents.phenopackets.phenopackets_mcp"])
+    client = Client("/tmp/phenopackets-mcp",
+                    exec_args=["python", "-m", "aurelian.agents.phenopackets.phenopackets_mcp"])
 
     import time
     time.sleep(1)  # Give the server time to start
@@ -44,7 +47,8 @@ async def test_phenopackets_mcp():
         return msg
 
     # Make a query
-    add_to_convo("user", "What tools are available for working with phenopackets?")
+    add_to_convo(
+        "user", "What tools are available for working with phenopackets?")
 
     message = convo[-1].content
 
@@ -56,7 +60,8 @@ async def test_phenopackets_mcp():
     print(f"Available tools: {[t['id'] for t in tool_choices]}")
 
     # Test the list_files tool
-    list_files_tool = next((t for t in tool_choices if t["id"] == "list_files"), None)
+    list_files_tool = next(
+        (t for t in tool_choices if t["id"] == "list_files"), None)
     if list_files_tool:
         print(f"Testing list_files tool...")
         tool_input_schema = await client.get_tool_input_schema(tool_id=list_files_tool["id"])
@@ -64,7 +69,8 @@ async def test_phenopackets_mcp():
         print(f"list_files result: {tool_result}")
 
     # Create a test file
-    write_file_tool = next((t for t in tool_choices if t["id"] == "write_to_file"), None)
+    write_file_tool = next(
+        (t for t in tool_choices if t["id"] == "write_to_file"), None)
     if write_file_tool:
         print(f"Testing write_to_file tool...")
         tool_input = '{"file_name": "test.txt", "data": "This is a test file for phenopackets MCP"}'
@@ -77,7 +83,8 @@ async def test_phenopackets_mcp():
         print(f"list_files after writing: {tool_result}")
 
     # Read the file
-    inspect_file_tool = next((t for t in tool_choices if t["id"] == "inspect_file"), None)
+    inspect_file_tool = next(
+        (t for t in tool_choices if t["id"] == "inspect_file"), None)
     if inspect_file_tool:
         print(f"Testing inspect_file tool...")
         tool_input = '{"data_file": "test.txt"}'
@@ -85,13 +92,15 @@ async def test_phenopackets_mcp():
         print(f"inspect_file result: {tool_result}")
 
     # Try a web search
-    search_web_tool = next((t for t in tool_choices if t["id"] == "search_web"), None)
+    search_web_tool = next(
+        (t for t in tool_choices if t["id"] == "search_web"), None)
     if search_web_tool:
         print(f"Testing search_web tool...")
         tool_input = '{"query": "phenopackets specification"}'
         try:
             tool_result = await client.execute_tool(tool_id=search_web_tool["id"], tool_input=tool_input)
-            print(f"search_web result: {tool_result[:200]}...")  # Just show first 200 chars
+            # Just show first 200 chars
+            print(f"search_web result: {tool_result[:200]}...")
         except Exception as e:
             print(f"search_web failed (expected in test): {e}")
 

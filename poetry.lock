@@ -4883,11 +4883,9 @@ httpx = ">=0.27"
 httpx-sse = ">=0.4"
 pydantic = ">=2.7.2,<3.0.0"
 pydantic-settings = ">=2.5.2"
-python-dotenv = {version = ">=1.0.0", optional = true, markers = "extra == \"cli\""}
 python-multipart = ">=0.0.9"
 sse-starlette = ">=1.6.1"
 starlette = ">=0.27"
-typer = {version = ">=0.12.4", optional = true, markers = "extra == \"cli\""}
 uvicorn = {version = ">=0.23.1", markers = "sys_platform != \"emscripten\""}
 
 [package.extras]
@@ -10495,4 +10493,4 @@ rdkit = ["rdkit"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "6bf569b7ed7a7a7eb2d61bd1ae130db71eda1b95e9f62d0922c3515c546ab65f"
+content-hash = "bc7a34aafa4e2dc2f2d367b7ab47ae5384f9a7b82cef53289f1fee7b7a987b99"
