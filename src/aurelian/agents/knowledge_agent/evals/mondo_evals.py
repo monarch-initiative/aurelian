@@ -52,14 +52,9 @@ severe_acute_respiratory_syndrome = Case(
             "by HIV protease [11], or very recently by the peptidase from a "
             "coronavirus involved in the severe acute respiratory syndrome [12], "
             "among others.",
-    expected_output = {'ontology_id': "MONDO:0005091"},
-    metadata = metadata("easy", "disease_recognition")
+    expected_output={'ontology_id': "MONDO:0005091"},
+    metadata=metadata("easy", "disease_recognition")
 )
-
-
-# Mucolipidosis type IV (MLIV) is an autosomal recessive lysosomal storage disorder characterized by severe neurologic and ophthalmologic abnormalities.
-# MONDO:0009653
-# Mucolipidosis type IV
 
 mucolipidosis_type_IV = Case(
     name="mucolipidosis type IV",
