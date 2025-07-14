@@ -180,7 +180,7 @@ def run_agent(
 
     # Set workdir if provided
     if 'workdir' in agent_options and agent_options['workdir']:
-        if hasattr(deps, 'workdir'):
+        if hasattr(deps, 'workdir') and deps.workdir:
             deps.workdir.location = agent_options['workdir']
 
     # Remove workdir from agent options to avoid duplicates
@@ -448,15 +448,15 @@ def linkml(ui, query, **kwargs):
 @ui_option
 @click.argument("query", nargs=-1, required=False)
 def robot(ui, query, **kwargs):
-    """Start the ROBOT Agent for ontology operations.
+    """Start the ROBOT Ontology Agent for ontology operations.
     
-    The ROBOT Agent provides natural language access to ontology operations 
+    The ROBOT Ontology Agent provides natural language access to ontology operations 
     and manipulations using the ROBOT tool. It can create, modify, and analyze
     ontologies through a chat interface.
     
     Run with a query for direct mode or with --ui for interactive chat mode.
     """
-    run_agent("robot", "aurelian.agents.robot", query=query, ui=ui, agent_func_name="chat", **kwargs)
+    run_agent("robot_ontology", "aurelian.agents.robot_ontology", query=query, ui=ui, agent_func_name="chat", **kwargs)
 
 
 @main.command()

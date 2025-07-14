@@ -5,24 +5,24 @@ from typing import List, Optional
 
 import gradio as gr
 
-from aurelian.agents.robot.robot_ontology_agent import robot_ontology_agent
-from aurelian.agents.robot.robot_config import RobotOntologyDependencies
+from aurelian.agents.robot_ontology.robot_ontology_agent import robot_ontology_agent
+from src.aurelian.agents.robot_ontology.robot_ontology_config import RobotDependencies
 from aurelian.utils.async_utils import run_sync
 
 
-def chat(deps: Optional[RobotOntologyDependencies] = None, **kwargs):
+def chat(deps: Optional[RobotDependencies] = None, **kwargs):
     """
     Initialize a chat interface for the ROBOT ontology agent.
-    
+
     Args:
         deps: Optional dependencies configuration
         **kwargs: Additional arguments to pass to the agent
-        
+
     Returns:
         A Gradio chat interface
     """
     if deps is None:
-        deps = RobotOntologyDependencies()
+        deps = RobotDependencies()
 
     def get_info(query: str, history: List[str]) -> str:
         print(f"QUERY: {query}")
@@ -31,7 +31,8 @@ def chat(deps: Optional[RobotOntologyDependencies] = None, **kwargs):
             query += "## History"
             for h in history:
                 query += f"\n{h}"
-        result = run_sync(lambda: robot_ontology_agent.chat(query, deps=deps, **kwargs))
+        result = run_sync(lambda: robot_ontology_agent.run_sync(
+            query, deps=deps, **kwargs))
         return result.data
 
     return gr.ChatInterface(
