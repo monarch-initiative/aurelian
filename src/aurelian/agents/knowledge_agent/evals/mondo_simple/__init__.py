@@ -1,0 +1,1 @@
+"""MONDO simple template evaluation cases."""

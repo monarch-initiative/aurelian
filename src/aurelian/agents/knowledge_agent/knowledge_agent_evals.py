@@ -6,7 +6,7 @@ from aurelian.evaluators.knowledge_agent_evaluator import SimpleEntityEvaluator
 from pydantic_evals import Dataset
 
 # Import evaluation datasets from evals subfolder  
-from .evals.mondo_evals import create_mondo_eval_dataset
+from .evals.mondo_simple.mondo_evals import create_mondo_eval_dataset
 from .evals.uberon_evals import create_uberon_eval_dataset
 from .evals.chebi_evals import create_chebi_eval_dataset
 from .evals.cl_evals import create_cl_eval_dataset

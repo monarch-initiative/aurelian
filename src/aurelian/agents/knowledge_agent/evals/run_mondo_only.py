@@ -2,7 +2,7 @@
 """Script to run only the MONDO evaluation dataset for the knowledge agent."""
 
 import asyncio
-from aurelian.agents.knowledge_agent.evals.mondo_evals import create_mondo_eval_dataset
+from aurelian.agents.knowledge_agent.evals.mondo_simple.mondo_evals import create_mondo_eval_dataset
 from aurelian.agents.knowledge_agent.knowledge_agent_agent import knowledge_agent_agent
 from aurelian.agents.knowledge_agent.knowledge_agent_config import get_config
 
