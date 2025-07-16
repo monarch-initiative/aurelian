@@ -11,6 +11,7 @@ from pydantic_ai import RunContext, ModelRetry
 from aurelian.utils.ontology_utils import search_ontology
 from aurelian.utils.search_utils import web_search, retrieve_web_page as fetch_web_page
 from .ontology_mapper_config import OntologyMapperDependencies, get_config
+# Removed unused query_router import
 
 
 @lru_cache
@@ -58,8 +59,7 @@ async def search_terms(
     Returns:
         A list of matching ontology terms
     """
-    print(f"Term Search: {ontology_id} {query}")
-    
+    print(f"🔍 ONTOLOGY MAPPER: Starting search for '{query}' in {ontology_id}")
     try:
         if " " in ontology_id:
             raise ModelRetry(
@@ -72,7 +72,6 @@ async def search_terms(
             raise ModelRetry(
                 f"Ontology '{ontology_id}' not in allowed list: {allowed_onts}"
             )
-            
         adapter = get_ontology_adapter(ontology_id)
         # Execute the potentially blocking operation in a thread pool
         results = await asyncio.to_thread(
@@ -81,11 +80,53 @@ async def search_terms(
             query, 
             limit=config.max_search_results
         )
+
+        # Enhance results with curator information
+        enhanced_results = []
+        query_lower = query.lower().strip()
         
-        if not results:
-            raise ModelRetry(f"No results found for query '{query}' in ontology '{ontology_id}'")
+        for term_id, label in results:
+            # Determine match type and confidence for curator
+            label_lower = label.lower()
             
-        return results
+            if label_lower == query_lower:
+                match_type = "exact_label"
+                confidence = 0.95
+                curator_note = "Exact match to preferred term"
+            elif query_lower in label_lower:
+                match_type = "partial_label"  
+                confidence = 0.85
+                curator_note = "Partial match in term label"
+            elif any(word in label_lower for word in query_lower.split() if len(word) > 3):
+                match_type = "word_match"
+                confidence = 0.75
+                curator_note = "Word-level match via similarity"
+            else:
+                match_type = "semantic_similarity"
+                confidence = 0.65
+                curator_note = "Semantic similarity match - review recommended"
+            
+            enhanced_results.append({
+                "id": term_id,
+                "label": label,
+                "match_type": match_type,
+                "confidence": confidence,
+                "curator_note": curator_note,
+                "ontology": ontology_id.upper()
+            })
+        
+        if not enhanced_results:
+            # Return helpful feedback instead of failing
+            enhanced_results = [{
+                "id": "no_match",
+                "label": f"No matches found for '{query}'",
+                "match_type": "none", 
+                "confidence": 0.0,
+                "curator_note": f"No terms found in {ontology_id}. Try synonyms or broader/narrower terms.",
+                "ontology": ontology_id.upper()
+            }]
+            
+        return enhanced_results
     except Exception as e:
         if "ModelRetry" in str(type(e)):
             raise e
