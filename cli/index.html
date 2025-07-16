@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.15">
     
     
       
@@ -1329,12 +1329,17 @@ Each agent can be run in either direct query mode or UI mode:</p>
                                 query mode.  [default: no-ui]
   --run-evals / --no-run-evals  Run the agent in evaluation mode.  [default:
                                 no-run-evals]
+  --eval-filter TEXT            Filter evals by difficulty levels (comma-
+                                separated: easy,medium,hard).
+  --eval-limit INTEGER          Limit number of eval cases to run.
+  --eval-benchmark TEXT         Run specific benchmark subset (e.g., &#39;mondo&#39;
+                                for knowledge_agent).
   --help                        Show this message and exit.
 </code></pre></div>
 <h2 id="amigo">amigo</h2>
 <p>Start the AmiGO Agent for Gene Ontology data exploration.</p>
-<p>The AmiGO Agent provides access to the Gene Ontology (GO) and gene 
-product annotations. It helps users explore gene functions and 
+<p>The AmiGO Agent provides access to the Gene Ontology (GO) and gene
+product annotations. It helps users explore gene functions and
 ontology relationships.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1369,8 +1374,8 @@ ontology relationships.</p>
 </code></pre></div>
 <h2 id="biblio">biblio</h2>
 <p>Start the Biblio Agent for bibliographic data management.</p>
-<p>The Biblio Agent helps organize and search bibliographic data and citations. 
-It provides tools for searching a bibliography database, retrieving scientific 
+<p>The Biblio Agent helps organize and search bibliographic data and citations.
+It provides tools for searching a bibliography database, retrieving scientific
 publications, and accessing web content.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1390,8 +1395,8 @@ publications, and accessing web content.</p>
 </code></pre></div>
 <h2 id="checklist">checklist</h2>
 <p>Start the Checklist Agent for paper evaluation.</p>
-<p>The Checklist Agent evaluates scientific papers against established checklists 
-such as STREAMS, STORMS, and ARRIVE. It helps ensure that papers conform to 
+<p>The Checklist Agent evaluates scientific papers against established checklists
+such as STREAMS, STORMS, and ARRIVE. It helps ensure that papers conform to
 relevant reporting guidelines and best practices.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1432,7 +1437,7 @@ formulas, and related information.</p>
 <h2 id="datasheets">datasheets</h2>
 <p>Start the Datasheets for Datasets (D4D) Agent.</p>
 <p>The D4D Agent extracts structured metadata from dataset documentation
-according to the Datasheets for Datasets schema. It can analyze both 
+according to the Datasheets for Datasets schema. It can analyze both
 web pages and PDF documents describing datasets.</p>
 <p>Run with a URL for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1452,8 +1457,8 @@ web pages and PDF documents describing datasets.</p>
 </code></pre></div>
 <h2 id="diagnosis">diagnosis</h2>
 <p>Start the Diagnosis Agent for rare disease diagnosis.</p>
-<p>The Diagnosis Agent assists in diagnosing rare diseases by leveraging the 
-Monarch Knowledge Base. It helps clinical geneticists evaluate potential 
+<p>The Diagnosis Agent assists in diagnosing rare diseases by leveraging the
+Monarch Knowledge Base. It helps clinical geneticists evaluate potential
 conditions based on patient phenotypes.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1473,8 +1478,8 @@ conditions based on patient phenotypes.</p>
 </code></pre></div>
 <h2 id="draw">draw</h2>
 <p>Start the Draw Agent for creating SVG drawings.</p>
-<p>The Draw Agent creates SVG drawings based on text descriptions and provides 
-feedback on drawing quality from an art critic judge. It helps generate visual 
+<p>The Draw Agent creates SVG drawings based on text descriptions and provides
+feedback on drawing quality from an art critic judge. It helps generate visual
 representations from textual descriptions with a focus on clarity and simplicity.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1532,7 +1537,7 @@ about gene function, products, and associations.</p>
 <h2 id="github">github</h2>
 <p>Start the GitHub Agent for repository interaction.</p>
 <p>The GitHub Agent provides a natural language interface for interacting with GitHub
-repositories. It can list/view pull requests and issues, find connections between PRs 
+repositories. It can list/view pull requests and issues, find connections between PRs
 and issues, search code, clone repositories, and examine commit history.</p>
 <p>Requires GitHub CLI (gh) to be installed and authenticated.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
@@ -1553,7 +1558,7 @@ and issues, search code, clone repositories, and examine commit history.</p>
 </code></pre></div>
 <h2 id="goann">goann</h2>
 <p>Start the GO Annotation Review Agent for evaluating GO annotations.</p>
-<p>The GO Annotation Review Agent helps review GO annotations for accuracy 
+<p>The GO Annotation Review Agent helps review GO annotations for accuracy
 and proper evidence. It can evaluate annotations based on evidence codes,
 identify potential over-annotations, and ensure compliance with GO guidelines,
 particularly for transcription factors.</p>
@@ -1578,8 +1583,8 @@ particularly for transcription factors.</p>
 <h2 id="gocam">gocam</h2>
 <p>Start the GO-CAM Agent for gene ontology causal activity models.</p>
 <p>The GO-CAM Agent helps create and analyze Gene Ontology Causal Activity Models,
-which describe biological systems as molecular activities connected by causal 
-relationships. </p>
+which describe biological systems as molecular activities connected by causal
+relationships.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
 <div class="highlight"><pre><span></span><code>main gocam [OPTIONS] [QUERY]...
@@ -1597,9 +1602,70 @@ relationships. </p>
                                 query mode.  [default: no-ui]
   --help                        Show this message and exit.
 </code></pre></div>
+<h2 id="knowledge-agent">knowledge-agent</h2>
+<p>Start the Knowledge Agent for scientific knowledge extraction.</p>
+<p>The Knowledge Agent extracts structured knowledge from scientific text using
+LinkML schemas. It can automatically generate schemas or use provided templates.</p>
+<p>Examples:
+  - <code>aurelian knowledge-agent "Extract genes and diseases from this text: ..."</code>
+  - <code>aurelian knowledge-agent --template my_schema.yaml "Extract from text"</code>
+  - <code>aurelian knowledge-agent --pdf paper.pdf "Extract entities"</code></p>
+<p>The agent supports both schema generation and schema-based extraction.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main knowledge-agent [OPTIONS] [QUERY]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT           The model to use for the agent.
+  -w, --workdir TEXT         The working directory for the agent.  [default:
+                             workdir]
+  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
+                             share]
+  -p, --server-port INTEGER  The port to run the UI server on.  [default:
+                             7860]
+  --ui / --no-ui             Start the agent in UI mode instead of direct
+                             query mode.  [default: no-ui]
+  --template PATH
+  -o, --output PATH          Path to output file. If not specified, output is
+                             printed to stdout.
+  -p, --pdf FILE             Path to a PDF file to extract knowledge from. Can
+                             be specified multiple times.
+  --help                     Show this message and exit.
+</code></pre></div>
+<h2 id="knowledge-agent-legacy">knowledge-agent-legacy</h2>
+<p>Start the Knowledge Agent for scientific knowledge extraction.</p>
+<p>The Knowledge Agent extracts structured knowledge from scientific text,
+aligning it to LinkML schemas. It helps curate scientific knowledge in
+a standardized format for downstream applications such as integration
+into a knowledge graph or database.</p>
+<p>Run with a text input or PDF file(s) and a template to extract knowledge. Results can be
+printed to stdout (default) or written to a file with the --output option.</p>
+<p>Example usage:
+ # From text:
+ poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"</p>
+<p># From PDF:
+ poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/gene_to_molecular_activity.yaml --pdf tests/data/pdfs/alz_paper.pdf</p>
+<p>TODO:
+- fix output so it's just the YAML and not an ugly object
+- add an output_type option to specify the output format (e.g., JSON, YAML)
+- (possibly) add a validation step to check response against schema (LinkML agent has a tool for IIUC)</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main knowledge-agent-legacy [OPTIONS] [TEXT]
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT    The model to use for the agent.
+  -w, --workdir TEXT  The working directory for the agent.  [default: workdir]
+  --ui / --no-ui      Start the agent in UI mode instead of direct query mode.
+                      [default: no-ui]
+  --template PATH     [required]
+  -o, --output PATH   Path to output file. If not specified, output is printed
+                      to stdout.
+  -p, --pdf FILE      Path to a PDF file to extract knowledge from. Can be
+                      specified multiple times.
+  --help              Show this message and exit.
+</code></pre></div>
 <h2 id="linkml">linkml</h2>
 <p>Start the LinkML Agent for data modeling and schema validation.</p>
-<p>The LinkML Agent helps create and validate data models and schemas using the 
+<p>The LinkML Agent helps create and validate data models and schemas using the
 Linked data Modeling Language (LinkML). It can assist in generating schemas,
 validating data against schemas, and modeling domain knowledge.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
@@ -1641,7 +1707,7 @@ extracting key information, and answering questions about research articles.</p>
 <h2 id="mapper">mapper</h2>
 <p>Start the Ontology Mapper Agent for mapping between ontologies.</p>
 <p>The Ontology Mapper Agent helps translate terms between different ontologies
-and vocabularies. It can find equivalent concepts across ontologies and 
+and vocabularies. It can find equivalent concepts across ontologies and
 explain relationships.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1663,7 +1729,7 @@ explain relationships.</p>
 </code></pre></div>
 <h2 id="monarch">monarch</h2>
 <p>Start the Monarch Agent for biomedical knowledge exploration.</p>
-<p>The Monarch Agent provides access to relationships between genes, diseases, 
+<p>The Monarch Agent provides access to relationships between genes, diseases,
 phenotypes, and other biomedical entities through the Monarch Knowledge Base.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1679,6 +1745,32 @@ phenotypes, and other biomedical entities through the Monarch Knowledge Base.</p
                              7860]
   --ui / --no-ui             Start the agent in UI mode instead of direct
                              query mode.  [default: no-ui]
+  --help                     Show this message and exit.
+</code></pre></div>
+<h2 id="ontology-mapper">ontology-mapper</h2>
+<p>Start the Ontology Mapper Agent for precise term mapping.</p>
+<p>Maps terms to standard ontologies with detailed curator information
+including match types, confidence scores, and grounding quality.</p>
+<p>Examples:
+  - <code>aurelian ontology-mapper "Map diabetes to MONDO terms"</code>
+  - <code>aurelian ontology-mapper "Find HGNC terms for BRCA genes"</code>
+  - <code>aurelian ontology-mapper --ontologies mondo,hp "Map heart disease terms"</code></p>
+<p>Provides precision mapping with curator notes for human review.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main ontology-mapper [OPTIONS] [QUERY]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT           The model to use for the agent.
+  -w, --workdir TEXT         The working directory for the agent.  [default:
+                             workdir]
+  --share / --no-share       Share the agent GradIO UI via URL.  [default: no-
+                             share]
+  -p, --server-port INTEGER  The port to run the UI server on.  [default:
+                             7860]
+  --ui / --no-ui             Start the agent in UI mode instead of direct
+                             query mode.  [default: no-ui]
+  -i, --ontologies TEXT      Comma-separated list of ontologies to use for the
+                             agent.
   --help                     Show this message and exit.
 </code></pre></div>
 <h2 id="paperqa">paperqa</h2>
@@ -1764,8 +1856,8 @@ your documents are properly recognized and indexed.</p>
 </code></pre></div>
 <h2 id="phenopackets">phenopackets</h2>
 <p>Start the Phenopackets Agent for standardized phenotype data.</p>
-<p>The Phenopackets Agent helps work with GA4GH Phenopackets, a standard 
-format for sharing disease and phenotype information for genomic 
+<p>The Phenopackets Agent helps work with GA4GH Phenopackets, a standard
+format for sharing disease and phenotype information for genomic
 medicine.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1785,8 +1877,8 @@ medicine.</p>
 </code></pre></div>
 <h2 id="rag">rag</h2>
 <p>Start the RAG Agent for document retrieval and generation.</p>
-<p>The RAG (Retrieval-Augmented Generation) Agent provides a natural language 
-interface for exploring and searching document collections. It uses RAG 
+<p>The RAG (Retrieval-Augmented Generation) Agent provides a natural language
+interface for exploring and searching document collections. It uses RAG
 techniques to combine search capabilities with generative AI.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
 <p><strong>Usage:</strong></p>
@@ -1826,6 +1918,34 @@ ontologies through a chat interface.</p>
   --ui / --no-ui             Start the agent in UI mode instead of direct
                              query mode.  [default: no-ui]
   --help                     Show this message and exit.
+</code></pre></div>
+<h2 id="schema-generator">schema-generator</h2>
+<p>Generate and validate LinkML schemas for entity extraction.</p>
+<p>Creates sophisticated LinkML schemas from natural language descriptions
+with automatic validation via LinkML agent.</p>
+<p>Examples:
+  - <code>aurelian schema-generator "genes and diseases from biomedical text"</code>
+  - <code>aurelian schema-generator "chemical reactions with yields" --domain chemistry -o chemistry.yaml</code>
+  - <code>aurelian schema-generator --ui</code> (launch interactive UI)</p>
+<p>The generated schemas include proper ontology grounding and validation constraints.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code>main schema-generator [OPTIONS] [DESCRIPTION]...
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code>  -m, --model TEXT                The model to use for the agent.
+  -w, --workdir TEXT              The working directory for the agent.
+                                  [default: workdir]
+  --share / --no-share            Share the agent GradIO UI via URL.
+  -p, --server-port INTEGER       The port to run the UI server on.
+  --ui / --no-ui                  Start the agent in UI mode instead of direct
+                                  generation mode.
+  -o, --output PATH               Path to output YAML file for generated
+                                  schema.
+  --domain [biomedical|chemistry|business|academic|legal|general]
+                                  Domain context for schema generation.
+  --complexity [simple|moderate|complex]
+                                  Schema complexity level.
+  --help                          Show this message and exit.
 </code></pre></div>
 <h2 id="search-ontology">search-ontology</h2>
 <p>Search the ontology for the given query term.</p>
@@ -1868,7 +1988,7 @@ The taxon/species parameter is required to provide proper context for gene analy
 </code></pre></div>
 <h2 id="ubergraph">ubergraph</h2>
 <p>Start the UberGraph Agent for SPARQL-based ontology queries.</p>
-<p>The UberGraph Agent provides a natural language interface to query ontologies 
+<p>The UberGraph Agent provides a natural language interface to query ontologies
 using SPARQL through the UberGraph endpoint. It helps users formulate and execute
 SPARQL queries without needing to know the full SPARQL syntax.</p>
 <p>Run with a query for direct mode or with --ui for interactive chat mode.</p>
@@ -1948,7 +2068,7 @@ SPARQL queries without needing to know the full SPARQL syntax.</p>
       <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      <script src="../assets/javascripts/bundle.56ea9cef.min.js"></script>
       
     
   </body>
