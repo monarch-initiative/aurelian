@@ -1,6 +1,6 @@
 """Evaluation cases for Knowledge Agent."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional, List
 from aurelian.evaluators.model import MetadataDict
 from aurelian.evaluators.knowledge_agent_evaluator import SimpleEntityEvaluator
 from pydantic_evals import Dataset
@@ -60,6 +60,60 @@ def create_comprehensive_eval_dataset() -> Dataset[str, str, MetadataDict]:
         evaluators=evaluators
     )
 
-def create_eval_dataset() -> Dataset[str, str, MetadataDict]:
-    """Create evaluation dataset for the knowledge agent (alias for comprehensive dataset)."""
-    return create_comprehensive_eval_dataset()
+def create_eval_dataset(
+    difficulty: Optional[List[str]] = None,
+    limit: Optional[int] = None,
+    benchmark: Optional[str] = None
+) -> Dataset[str, str, MetadataDict]:
+    """Create evaluation dataset for the knowledge agent with optional filtering.
+    
+    Args:
+        difficulty: Filter by difficulty levels (easy, medium, hard)
+        limit: Limit number of cases to run
+        benchmark: Run specific benchmark subset (e.g., 'mondo', 'uberon', etc.)
+    """
+    if benchmark:
+        # Map benchmark names to their dataset functions
+        benchmark_map = {
+            'mondo': create_mondo_eval_dataset,
+            'uberon': create_uberon_eval_dataset,
+            'chebi': create_chebi_eval_dataset,
+            'cl': create_cl_eval_dataset,
+            'go_bp': create_go_bp_eval_dataset,
+            'go_cc': create_go_cc_eval_dataset,
+            'go_mf': create_go_mf_eval_dataset,
+            'pr': create_pr_eval_dataset,
+            'so': create_so_eval_dataset,
+            'ncbitaxon': create_ncbitaxon_eval_dataset,
+            'mop': create_mop_eval_dataset,
+        }
+        
+        if benchmark in benchmark_map:
+            dataset = benchmark_map[benchmark]()
+            cases = dataset.cases
+        else:
+            raise ValueError(f"Unknown benchmark: {benchmark}. Available: {list(benchmark_map.keys())}")
+    else:
+        # Use comprehensive dataset
+        dataset = create_comprehensive_eval_dataset()
+        cases = dataset.cases
+    
+    # Apply difficulty filtering if specified
+    if difficulty:
+        filtered_cases = []
+        for case in cases:
+            case_difficulty = case.metadata.get('difficulty', 'medium')
+            if case_difficulty in difficulty:
+                filtered_cases.append(case)
+        cases = filtered_cases
+    
+    # Apply limit if specified
+    if limit:
+        cases = cases[:limit]
+    
+    evaluators = [SimpleEntityEvaluator()]
+    
+    return Dataset(
+        cases=cases,
+        evaluators=evaluators
+    )

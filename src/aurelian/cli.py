@@ -69,6 +69,19 @@ run_evals_option = click.option(
     show_default=True,
     help="Run the agent in evaluation mode.",
 )
+eval_filter_option = click.option(
+    "--eval-filter",
+    help="Filter evals by difficulty levels (comma-separated: easy,medium,hard).",
+)
+eval_limit_option = click.option(
+    "--eval-limit",
+    type=int,
+    help="Limit number of eval cases to run.",
+)
+eval_benchmark_option = click.option(
+    "--eval-benchmark",
+    help="Run specific benchmark subset (e.g., 'mondo' for knowledge_agent).",
+)
 ontologies_option = click.option(
     "--ontologies",
     "-i",
@@ -232,8 +245,11 @@ def run_agent(
 @workdir_option
 @ui_option
 @run_evals_option
+@eval_filter_option
+@eval_limit_option
+@eval_benchmark_option
 @click.argument("query", nargs=-1, required=False)
-def agent(ui, query, agent, use_cborg=False, run_evals=False, **kwargs):
+def agent(ui, query, agent, use_cborg=False, run_evals=False, eval_filter=None, eval_limit=None, eval_benchmark=None, **kwargs):
     """NEW: Generic agent runner.
 
     Run with a query for direct mode or with --ui for interactive chat mode.
@@ -297,7 +313,17 @@ def agent(ui, query, agent, use_cborg=False, run_evals=False, **kwargs):
         # TODO: make this generic
         package_name = f"{agent_module}.{agent}_evals"
         module = importlib.import_module(package_name)
-        dataset = module.create_eval_dataset()
+        
+        # Prepare evaluation filtering options
+        eval_options = {}
+        if eval_filter:
+            eval_options['difficulty'] = eval_filter.split(',') if ',' in eval_filter else [eval_filter]
+        if eval_limit:
+            eval_options['limit'] = eval_limit
+        if eval_benchmark:
+            eval_options['benchmark'] = eval_benchmark
+            
+        dataset = module.create_eval_dataset(**eval_options)
 
         async def run_agent(inputs: str) -> Any:
             result = await agent_obj.run(inputs, deps=deps, **agent_run_options)
