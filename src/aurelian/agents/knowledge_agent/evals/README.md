@@ -1,6 +1,8 @@
 # Knowledge Agent Evaluation Datasets
 
-This directory contains evaluation datasets for the Knowledge Agent, organized by ontology. All datasets are extracted from real sentences in the CRAFT (Colorado Richly Annotated Full Text) corpus.
+This directory contains evaluation datasets for the Knowledge Agent, organized by 
+LinkML template. All datasets are extracted from real sentences in the CRAFT 
+(Colorado Richly Annotated Full Text) corpus.
 
 ## Datasets
 
@@ -18,4 +20,5 @@ This directory contains evaluation datasets for the Knowledge Agent, organized b
 
 ## Total Cases
 
-**110 evaluation cases** across 11 biomedical ontologies, systematically extracted from the CRAFT corpus to ensure authentic biomedical text and terminology usage.
+**110 evaluation cases** across 11 templates, systematically extracted from the 
+CRAFT corpus to ensure authentic biomedical text and terminology usage.
