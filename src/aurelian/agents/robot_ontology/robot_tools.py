@@ -2,12 +2,12 @@ from typing import Optional, List
 
 from pydantic_ai import RunContext, ModelRetry
 
-from aurelian.agents.robot.assets import ROBOT_ONTOLOGY_AGENT_CONTENTS_DIR
-from aurelian.agents.robot.robot_config import RobotDependencies
+from aurelian.agents.robot_ontology.assets import ROBOT_ONTOLOGY_AGENT_CONTENTS_DIR
+from src.aurelian.agents.robot_ontology.robot_ontology_config import RobotDependencies
 from aurelian.utils.robot_ontology_utils import run_robot_template_command
 
 
-async def write_and_compile_template(ctx: RunContext[RobotDependencies], template: str, save_to_file: str= "core.csv", import_ontologies: Optional[List[str]] = None) -> str:
+async def write_and_compile_template(ctx: RunContext[RobotDependencies], template: str, save_to_file: str = "core.csv", import_ontologies: Optional[List[str]] = None) -> str:
     """
     Adds a template to the file system and compile it to OWL
 

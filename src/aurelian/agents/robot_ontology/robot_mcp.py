@@ -1,29 +1,28 @@
 """
 MCP tools for creating robot schemas and example datasets
 """
+from aurelian.dependencies.workdir import WorkDir
 import os
 from typing import Optional, List
 
 from mcp.server.fastmcp import FastMCP
 
 import aurelian.agents.filesystem.filesystem_tools as fst
-from aurelian.agents.robot.robot_ontology_agent import SYSTEM
-import aurelian.agents.robot.robot_tools as rt
-from aurelian.agents.robot.robot_config import RobotDependencies
+from aurelian.agents.robot_ontology.robot_ontology_agent import SYSTEM
+import aurelian.agents.robot_ontology.robot_tools as rt
+from src.aurelian.agents.robot_ontology.robot_ontology_config import RobotDependencies
 from pydantic_ai import RunContext, ModelRetry
 
 # Initialize FastMCP server
 mcp = FastMCP("robot", instructions=SYSTEM)
 
 
-
-from aurelian.dependencies.workdir import WorkDir
-
 def deps() -> RobotDependencies:
     deps = RobotDependencies()
     loc = os.getenv("AURELIAN_WORKDIR", "/tmp/aurelian")
     deps.workdir = WorkDir(loc)
     return deps
+
 
 def ctx() -> RunContext[RobotDependencies]:
     rc: RunContext[RobotDependencies] = RunContext[RobotDependencies](
@@ -34,7 +33,7 @@ def ctx() -> RunContext[RobotDependencies]:
 
 
 @mcp.tool()
-async def write_and_compile_template(template: str, save_to_file: str= "core.csv", import_ontologies: Optional[List[str]] = None) -> str:
+async def write_and_compile_template(template: str, save_to_file: str = "core.csv", import_ontologies: Optional[List[str]] = None) -> str:
     """
     Adds a template to the file system and compile it to OWL
 

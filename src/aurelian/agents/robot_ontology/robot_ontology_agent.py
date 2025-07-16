@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from typing import List, Dict
 
 from aurelian.agents.filesystem.filesystem_tools import inspect_file, download_url_as_markdown, list_files
-from aurelian.agents.robot.robot_config import RobotDependencies
-from aurelian.agents.robot.robot_tools import write_and_compile_template, fetch_documentation
+from src.aurelian.agents.robot_ontology.robot_ontology_config import RobotDependencies
+from aurelian.agents.robot_ontology.robot_tools import write_and_compile_template, fetch_documentation
 from aurelian.utils.async_utils import run_sync
 from aurelian.utils.search_utils import web_search
 from pydantic_ai import Agent, RunContext, Tool
@@ -76,8 +76,6 @@ Use scientific language as far as possible. For IDs, these should be numeric cur
 """
 
 
-
-
 robot_ontology_agent = Agent(
     model="openai:gpt-4o",
     deps_type=RobotDependencies,
@@ -94,7 +92,10 @@ robot_ontology_agent = Agent(
 
 @robot_ontology_agent.system_prompt
 def include_templates_in_prompt(ctx: RunContext[RobotDependencies]) -> str:
-    files_names = ctx.deps.workdir.list_file_names()
+    if ctx.deps.workdir:
+        files_names = ctx.deps.workdir.list_file_names()
+    else:
+        files_names = []
     s = "Working directory files/templates:"
     if files_names:
         for f in files_names:
@@ -110,10 +111,6 @@ def include_prefixes_in_prompt(ctx: RunContext[RobotDependencies]) -> str:
     return f"Prefixes: {pmap}"
 
 
-
-
-
-
 def chat(workdir: str, **kwargs):
     import gradio as gr
     deps = RobotDependencies()
@@ -126,7 +123,8 @@ def chat(workdir: str, **kwargs):
             query += "## History"
             for h in history:
                 query += f"\n{h}"
-        result = run_sync(lambda: robot_ontology_agent.run_sync(query, deps=deps, **kwargs))
+        result = run_sync(lambda: robot_ontology_agent.run_sync(
+            query, deps=deps, **kwargs))
         return result.data
 
     return gr.ChatInterface(
