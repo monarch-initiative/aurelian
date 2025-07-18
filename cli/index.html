@@ -1641,9 +1641,9 @@ into a knowledge graph or database.</p>
 printed to stdout (default) or written to a file with the --output option.</p>
 <p>Example usage:
  # From text:
- poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"</p>
+ uv run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"</p>
 <p># From PDF:
- poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/gene_to_molecular_activity.yaml --pdf tests/data/pdfs/alz_paper.pdf</p>
+ uv run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/gene_to_molecular_activity.yaml --pdf tests/data/pdfs/alz_paper.pdf</p>
 <p>TODO:
 - fix output so it's just the YAML and not an ugly object
 - add an output_type option to specify the output format (e.g., JSON, YAML)

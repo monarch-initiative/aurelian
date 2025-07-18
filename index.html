@@ -1162,7 +1162,7 @@
 <h3 id="prerequisites">Prerequisites</h3>
 <p>Ensure you have the following installed:</p>
 <ul>
-<li><a href="https://python-poetry.org/docs/#installation">Poetry</a> (for managing dependencies)</li>
+<li><a href="https://docs.astral.sh/uv/">uv</a> (for managing dependencies)</li>
 <li>Python 3.11 or later</li>
 </ul>
 <h3 id="installation">Installation</h3>
@@ -1172,10 +1172,10 @@
 <span class="nb">cd</span><span class="w"> </span>aurelian
 </code></pre></div></li>
 <li><strong>Install dependencies:</strong>
-   <div class="highlight"><pre><span></span><code>poetry<span class="w"> </span>install<span class="w"> </span>--extras<span class="o">=</span>gradio
+   <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>gradio<span class="o">]</span>
 </code></pre></div></li>
 <li><strong>Verify installation:</strong>
-   <div class="highlight"><pre><span></span><code>poetry<span class="w"> </span>run<span class="w"> </span>aurelian<span class="w"> </span>--help
+   <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>aurelian<span class="w"> </span>--help
 </code></pre></div></li>
 </ol>
 <h3 id="setting-up-up-logfire">Setting up up Logfire</h3>
@@ -1188,7 +1188,7 @@ You are not authenticated. Please run `logfire auth` to authenticate.
 <p>Follow these steps:</p>
 <ol>
 <li><strong>Authenticate with Logfire:</strong>
-   <div class="highlight"><pre><span></span><code>poetry<span class="w"> </span>run<span class="w"> </span>logfire<span class="w"> </span>auth
+   <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>logfire<span class="w"> </span>auth
 </code></pre></div></li>
 <li><strong>(Optional) Set a production token:</strong> If running in a production environment, set the <code>LOGFIRE_TOKEN</code> environment variable:
    <div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">LOGFIRE_TOKEN</span><span class="o">=</span>your_token_here
@@ -1203,7 +1203,7 @@ set the environment variable <code>OPENAI_API_KEY</code> to this key, for exampl
 <h3 id="running-aurelian">Running Aurelian</h3>
 <p>Once authenticated, you can use Aurelian's CLI:</p>
 <p><strong>Run the mapper tool:</strong>
-   <div class="highlight"><pre><span></span><code>poetry<span class="w"> </span>run<span class="w"> </span>aurelian<span class="w"> </span>mapper
+   <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>aurelian<span class="w"> </span>mapper
 </code></pre></div></p>
 <p>For more details, refer to the project documentation.</p>
 <h3 id="troubleshooting">Troubleshooting</h3>
