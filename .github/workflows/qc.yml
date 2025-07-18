@@ -44,4 +44,4 @@ jobs:
 
       - name: Run tests (excluding test_agents)
         run: |
-          uv run pytest --all-extras
+          uv run --all-extras pytest
