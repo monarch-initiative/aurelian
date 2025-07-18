@@ -27,7 +27,7 @@ jobs:
         run: pip install uv
 
       - name: Install dependencies
-        run: uv pip install --system -e .
+        run: uv pip install -r pyproject.toml --system -e .
 
       - name: Install build dependencies
         run: uv pip install --system build hatchling

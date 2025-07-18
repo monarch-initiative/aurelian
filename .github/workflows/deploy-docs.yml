@@ -22,16 +22,16 @@ jobs:
     - name: Install uv
       run: pip install uv
 
-    - name: Install dependencies
-      run: |
-        uv pip install --system -e .
+    # - name: Install dependencies
+    #   run: |
+    #     uv pip install --system -e .
 
     - name: Build documentation
       run: |
         export PATH=$HOME/.local/bin:$PATH
         mkdir gh-pages
         touch gh-pages/.nojekyll
-        uv run mkdocs build
+        uv run --all-extras mkdocs build
         cp -r site/* gh-pages/
 
     - name: Deploy documentation
