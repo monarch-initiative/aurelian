@@ -111,7 +111,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
     try:
         import PyPDF2
     except ImportError:
-        raise ImportError("PyPDF2 is required for PDF extraction. Install it with `poetry install -E pdf`")
+        raise ImportError("PyPDF2 is required for PDF extraction. Install it with `uv pip install -E pdf`")
 
     with open(pdf_path, 'rb') as file:
         pdf_reader = PyPDF2.PdfReader(file)
@@ -139,7 +139,7 @@ def process_pdf_files(pdf_paths: List[str], max_pages: Optional[int] = None,
     try:
         import PyPDF2
     except ImportError:
-        raise ImportError("PyPDF2 is required for PDF extraction. Install it with `poetry install -E pdf`")
+        raise ImportError("PyPDF2 is required for PDF extraction. Install it with `uv pip install -r pyproject.toml --extra pdf`")
 
     all_text = ""
     total_pages_processed = 0
