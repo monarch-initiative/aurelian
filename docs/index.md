@@ -18,7 +18,7 @@ Ensure you have the following installed:
    ```
 2. **Install dependencies:**
    ```sh
-   uv pip install -r pyproject.toml --extra gradio
+   uv pip install -e .[gradio]
    ```
 3. **Verify installation:**
    ```sh
