@@ -39,7 +39,7 @@ jobs:
           uv pip install -r pyproject.toml --system -e . --extra gradio --extra gocam --extra rdkit --extra linkml --extra pdfminer
           uv pip uninstall -y numpy pandas
           uv pip install --no-cache-dir numpy pandas
-          uv pip uninstall bioservices -y || true
+          uv pip uninstall bioservices || true
           uv pip install bioservices
 
       - name: Run tests (excluding test_agents)
