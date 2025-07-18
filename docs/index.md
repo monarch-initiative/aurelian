@@ -6,7 +6,7 @@
 
 Ensure you have the following installed:
 
-- [Poetry](https://python-poetry.org/docs/#installation) (for managing dependencies)
+- [uv](https://docs.astral.sh/uv/) (for managing dependencies)
 - Python 3.11 or later
 
 ### Installation
@@ -18,11 +18,11 @@ Ensure you have the following installed:
    ```
 2. **Install dependencies:**
    ```sh
-   poetry install --extras=gradio
+   uv pip install -e .[gradio]
    ```
 3. **Verify installation:**
    ```sh
-   poetry run aurelian --help
+   uv run aurelian --help
    ```
 
 ### Setting up up Logfire
@@ -40,7 +40,7 @@ Follow these steps:
 
 1. **Authenticate with Logfire:**
    ```sh
-   poetry run logfire auth
+   uv run logfire auth
    ```
 2. **(Optional) Set a production token:** If running in a production environment, set the `LOGFIRE_TOKEN` environment variable:
    ```sh
@@ -63,7 +63,7 @@ Once authenticated, you can use Aurelian's CLI:
 
 **Run the mapper tool:**
    ```sh
-   poetry run aurelian mapper
+   uv run aurelian mapper
    ```
 
 For more details, refer to the project documentation.

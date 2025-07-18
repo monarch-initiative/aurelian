@@ -1,15 +1,15 @@
 # Aurelian Development Guide
 
 ## Build & Test Commands
-- Run all tests: `poetry run pytest`
-- Run single test: `poetry run pytest tests/test_agents/test_linkml_agent.py::test_specific_function`
-- Run specific test module: `poetry run pytest tests/test_agents/test_linkml_agent.py`
-- Lint code: `poetry run ruff check src/ tests/`
-- Fix lint issues: `poetry run ruff check --fix src/ tests/`
-- Format code: `poetry run black src/ tests/`
-- Type check: `poetry run mypy src tests`
-- Build docs: `poetry run mkdocs build`
-- Serve docs: `make serve` or `poetry run mkdocs serve`
+- Run all tests: `uv run pytest`
+- Run single test: `uv run pytest tests/test_agents/test_linkml_agent.py::test_specific_function`
+- Run specific test module: `uv run pytest tests/test_agents/test_linkml_agent.py`
+- Lint code: `uv run ruff check src/ tests/`
+- Fix lint issues: `uv run ruff check --fix src/ tests/`
+- Format code: `uv run black src/ tests/`
+- Type check: `uv run mypy src tests`
+- Build docs: `uv run mkdocs build`
+- Serve docs: `make serve` or `uv run mkdocs serve`
 - Generate test reports: `make reports/all.md`
 
 ## Code Style Guidelines

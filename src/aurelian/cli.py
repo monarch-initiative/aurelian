@@ -1220,10 +1220,10 @@ def knowledge_agent_legacy(ui, model, text, template, output, pdf, **kwargs):
 
     Example usage:
      # From text:
-     poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"
+     uv run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/mondo_simple.yaml "This is a sentence about Marfan Syndrome"
 
      # From PDF:
-     poetry run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/gene_to_molecular_activity.yaml --pdf tests/data/pdfs/alz_paper.pdf
+     uv run aurelian knowledge-agent --template src/aurelian/agents/knowledge_agent/templates/gene_to_molecular_activity.yaml --pdf tests/data/pdfs/alz_paper.pdf
 
     TODO:
     - fix output so it's just the YAML and not an ugly object
