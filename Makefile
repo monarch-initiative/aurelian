@@ -1,4 +1,4 @@
-RUN = poetry run
+RUN = uv run
 
 all: test
 #test: pytest doctest mypy
@@ -63,6 +63,5 @@ reports/%.log.jsonl: tests/test_agents/test_%.py
 reports/%.md: reports/%.log.jsonl
 	$(RUN) python src/aurelian/utils/pytest_report_to_markdown.py $< > $@.tmp && mv $@.tmp $@
 
-
 requirements.txt:
-	poetry export -f requirements.txt --output requirements.txt --without-hashes --dev
+	uv export --format requirements.txt --output-file requirements.txt --dev
