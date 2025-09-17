@@ -11,7 +11,7 @@ from .d4d_tools import get_full_schema, process_website_or_pdf
 
 # Create the agent, the full schema will be loaded when needed
 d4d_agent = Agent(
-    model="openai:gpt-4o",
+    model="openai:gpt-5",
     deps_type=D4DConfig,
     system_prompt="""
 You are an expert data scientist specializing in extracting metadata from datasets. 
