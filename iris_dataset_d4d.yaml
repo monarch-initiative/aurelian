@@ -1,0 +1,33 @@
+id: "10.24432/C56C76"
+name: "iris"
+title: "Iris Dataset"
+description: "A small classic dataset from Fisher, 1936. One of the earliest known datasets used for evaluating classification methods. The data set contains 3 classes of 50 instances each, where each class refers to a type of iris plant. One class is linearly separable from the other 2; the latter are not linearly separable from each other."
+license: "CC BY 4.0"
+creators:
+  - principal_investigator:
+      name: "R. A. Fisher"
+purposes:
+  - response: "Classification and evaluation of classification methods"
+tasks:
+  - response: "Classification of iris plant types"
+instances:
+  representation: "Each instance represents a plant"
+  instance_type: "Iris plants"
+  data_type: "Real-valued measurements"
+  counts: 150
+  label: "Class of iris plant (Iris Setosa, Iris Versicolour, or Iris Virginica)"
+  missing_information:
+    missing: "No"
+raw_sources:
+  description: "Original data collected by R.A. Fisher in 1936"
+is_tabular: "Yes"
+subsets:
+  - is_data_split: "Three classes with 50 instances each"
+distribution_formats:
+  - description: "Data files available in .data format"
+distribution_dates:
+  - description: "Donated to UCI ML Repository on 6/30/1988"
+license_and_use_terms:
+  description: "Creative Commons Attribution 4.0 International (CC BY 4.0) license, allowing sharing and adaptation for any purpose with appropriate attribution"
+maintainers:
+  description: "UCI Machine Learning Repository"

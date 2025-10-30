@@ -1,0 +1,96 @@
+Based on the extracted content, I'll generate a YAML document following the datasheets for datasets schema:
+
+```yaml
+id: https://doi.org/10.13026/C2JT1Q
+name: MIMIC-CXR
+title: MIMIC-CXR Database
+description: >-
+  MIMIC-CXR is a large publicly available database of chest radiographs with free-text reports.
+  The database contains DICOM format image files and free-text radiology reports. All data has 
+  been de-identified.
+
+creators:
+  - principal_investigator:
+      name: Alistair Johnson
+      affiliation:
+        name: MIT Laboratory for Computational Physiology
+  - principal_investigator:
+      name: Tom Pollard
+      affiliation:
+        name: MIT Laboratory for Computational Physiology
+  - principal_investigator:
+      name: Roger Mark
+      affiliation:
+        name: MIT Laboratory for Computational Physiology
+  - principal_investigator:
+      name: Seth Berkowitz
+      affiliation:
+        name: Beth Israel Deaconess Medical Center
+  - principal_investigator:
+      name: Steven Horng
+      affiliation:
+        name: Beth Israel Deaconess Medical Center
+
+funders:
+  - grantor:
+      name: National Institutes of Health
+    grant:
+      name: NIH-R01-EB017205
+  - grantor:
+      name: Philips Healthcare
+
+purposes:
+  - response: To create a large publicly available database of chest radiographs with associated free-text radiology reports for research purposes.
+
+instances:
+  - data_type: Chest radiograph images in DICOM format and associated free-text radiology reports
+    instance_type: Medical imaging data and text reports
+
+ethical_reviews:
+  - description: Data access requires completion of CITI "Data or Specimens Only Research" training
+
+data_protection_impacts:
+  - description: All data has been de-identified to protect patient privacy
+
+preprocessing_strategies:
+  - description: Images are provided in their native DICOM format
+
+distribution_formats:
+  - description: DICOM format for images, text format for reports
+
+license_and_use_terms:
+  description: PhysioNet Credentialed Health Data License 1.5.0
+
+maintainers:
+  - description: MIT Laboratory for Computational Physiology
+
+version:
+  description: 2.0.0
+
+is_deidentified:
+  description: Yes, all data has been de-identified
+
+download_url: https://physionet.org/content/mimic-cxr/2.0.0/
+
+version_access:
+  description: Previous versions remain available through PhysioNet
+
+extension_mechanism:
+  description: Code contributions and discussions are welcome through the mimic-cxr GitHub repository
+
+created_on: "2019-09-19"
+
+keywords:
+  - computer vision
+  - chest x-rays
+  - natural language processing
+  - radiology
+  - machine learning
+  - mimic
+
+collection_timeframes:
+  - description: Dataset published September 19, 2019
+
+existing_uses:
+  - description: Research in medical imaging analysis, computer vision, and natural language processing of medical reports
+```
