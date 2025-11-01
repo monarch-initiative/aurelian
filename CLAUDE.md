@@ -1,5 +1,45 @@
 # Aurelian Development Guide
 
+## D4D Agent File Type Support
+
+The D4D (Datasheets for Datasets) agent now supports multiple file types for metadata extraction:
+
+### Supported File Types
+- **PDF files** (.pdf) - Both URLs and local files
+- **HTML files** (.html, .htm) - Both URLs (web pages) and local files
+- **JSON metadata** (.json) - Local files
+- **Text files** (.txt, .md) - Local files
+- **Web pages** - Any HTML content accessible via URL
+
+### Usage
+The agent automatically detects the file type based on:
+1. Local file path existence
+2. File extension
+3. Content-Type header (for URLs)
+
+Example:
+```python
+from aurelian.agents.d4d.d4d_agent import d4d_agent
+from aurelian.agents.d4d.d4d_config import D4DConfig
+
+# Process various file types
+urls_or_paths = [
+    "https://example.com/dataset.html",  # Web page
+    "https://example.com/paper.pdf",      # PDF URL
+    "/path/to/metadata.json",              # Local JSON
+    "/path/to/landing_page.html",          # Local HTML
+]
+
+result = await d4d_agent.run(
+    f"Extract metadata from: {', '.join(urls_or_paths)}",
+    deps=D4DConfig()
+)
+```
+
+### Content Truncation
+- HTML, JSON, and text files are truncated at 50,000 characters to avoid token limits
+- A truncation notice is added to the content when this occurs
+
 ## Build & Test Commands
 - Run all tests: `uv run pytest`
 - Run single test: `uv run pytest tests/test_agents/test_linkml_agent.py::test_specific_function`

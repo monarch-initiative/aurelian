@@ -12,6 +12,49 @@ Most commands will start up a different AI agent.
 
 ## Examples of use
 
+### D4D Agent (Datasheets for Datasets)
+
+Extracts structured metadata from dataset documentation following the [Datasheets for Datasets](https://arxiv.org/abs/1803.09010) framework.
+
+**Supported File Types**: PDF, HTML, JSON, text/markdown (both URLs and local files)
+
+**Library Usage**:
+```python
+from aurelian.agents.d4d.d4d_agent import d4d_agent
+from aurelian.agents.d4d.d4d_config import D4DConfig
+
+# Process multiple sources
+sources = [
+    "https://example.com/dataset",
+    "/path/to/metadata.json",
+    "/path/to/documentation.html"
+]
+
+config = D4DConfig()
+result = await d4d_agent.run(
+    f"Extract metadata from: {', '.join(sources)}",
+    deps=config
+)
+
+print(result.data)  # D4D YAML output
+```
+
+**Test Script**:
+```bash
+cd aurelian
+python test_d4d.py
+```
+
+**Features**:
+- Automatic file type detection (PDF, HTML, JSON, text)
+- Both URLs and local file paths supported
+- Content truncation at 50,000 characters for token management
+- Structured YAML output following D4D schema
+
+**Documentation**: [D4D Agent Guide](docs/agents/d4d_agent/)
+
+---
+
 ### TALISMAN
 
 gene set enrichment
