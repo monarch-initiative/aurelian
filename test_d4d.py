@@ -7,6 +7,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add the src directory to the path so we can import aurelian modules
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
@@ -14,6 +16,7 @@ from aurelian.agents.d4d.d4d_config import D4DConfig
 from aurelian.agents.d4d.d4d_agent import d4d_agent
 
 
+@pytest.mark.asyncio
 async def test_d4d_agent():
     """Test the D4D agent with a sample dataset."""
 
