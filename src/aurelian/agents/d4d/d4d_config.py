@@ -10,8 +10,8 @@ from aurelian.dependencies.workdir import HasWorkdir, WorkDir
 @dataclass
 class D4DConfig(HasWorkdir):
     """Configuration for the D4D agent."""
-    
-    schema_url: str = "https://raw.githubusercontent.com/monarch-initiative/ontogpt/main/src/ontogpt/templates/data_sheets_schema.yaml"
+
+    schema_url: str = "https://raw.githubusercontent.com/bridge2ai/data-sheets-schema/main/src/data_sheets_schema/schema/data_sheets_schema.yaml"
     
     def __post_init__(self):
         """Initialize the config with default values."""
